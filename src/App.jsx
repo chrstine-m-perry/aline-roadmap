@@ -116,9 +116,21 @@ function ProjectModal({ project, onSave, onClose }) {
   );
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const handleSave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (form.name) onSave(form);
+  };
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 24, width: 420, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        style={{ background: "#fff", borderRadius: 12, padding: 24, width: 420, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#111827" }}>
           {project ? "Edit project" : "Add project"}
         </h3>
@@ -154,8 +166,8 @@ function ProjectModal({ project, onSave, onClose }) {
           </label>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={btnSecondary}>Cancel</button>
-          <button onClick={() => form.name && onSave(form)} style={btnPrimary} disabled={!form.name}>
+          <button type="button" onClick={onClose} style={btnSecondary}>Cancel</button>
+          <button type="button" onClick={handleSave} style={btnPrimary} disabled={!form.name}>
             {project ? "Save changes" : "Add project"}
           </button>
         </div>
