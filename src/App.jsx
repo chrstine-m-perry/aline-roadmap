@@ -382,8 +382,7 @@ export default function App() {
       try {
         const {data:rows,error:err}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
         if(err&&err.code!=="PGRST116") throw err;
-        const loaded=rows?.value||defaultData();
-        setData(loaded);
+        setData(rows?.value||defaultData());
       } catch(e) {
         console.error(e);
         setData(defaultData());
@@ -392,7 +391,7 @@ export default function App() {
       setLoading(false);
     })();
 
-    // Re-sync from Supabase whenever the tab regains focus (catches items added from scoring board)
+    // Re-sync when tab regains focus — catches items added from scoring board
     const onFocus=async()=>{
       try{
         const{data:rows}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
@@ -410,6 +409,12 @@ export default function App() {
       return next;
     });
   },[]);
+
+  // Helper: get fresh state from Supabase (used when local state may be stale)
+  const getFreshData=async()=>{
+    const{data:rows}=await supabase.from("roadmap_state").select("value").eq("key","main").single();
+    return rows?.value||defaultData();
+  };
 
   const handleSaveNew=proj=>{
     updateData(d=>{
@@ -435,12 +440,14 @@ export default function App() {
     });
   };
 
-  const handleDropCell=(e,laneId,sprintIdx)=>{
+  const handleDropCell=async(e,laneId,sprintIdx)=>{
     e.preventDefault();
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
+    setDragOverTarget(null); setDraggingId(null);
 
-    // If project exists in local state, update normally
-    if(data.projects?.[pid]){
+    // Try local state first; if project missing, fetch fresh from Supabase
+    const localProj=data?.projects?.[pid];
+    if(localProj){
       updateData(d=>{
         const count=Object.values(d.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
         if(count>=6) return d;
@@ -448,44 +455,41 @@ export default function App() {
         return {...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
       });
     } else {
-      // Project was added externally (e.g. from scoring board) — re-read from Supabase first
-      (async()=>{
-        const{data:row}=await supabase.from("roadmap_state").select("value").eq("key","main").single();
-        if(!row?.value) return;
-        const fresh=row.value;
+      // Project was written externally (from scoring board) — fetch fresh state
+      try{
+        const fresh=await getFreshData();
         const proj=fresh.projects?.[pid]; if(!proj) return;
         const count=Object.values(fresh.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
         if(count>=6) return;
         const next={...fresh,projects:{...fresh.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(fresh.backlog||[]).filter(id=>id!==pid),completed:(fresh.completed||[]).filter(id=>id!==pid)};
         await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"});
         setData(next);
-      })();
+      }catch(err){console.error("Drop failed:",err);}
     }
-    setDragOverTarget(null); setDraggingId(null);
   };
 
-  const handleDropBacklog=e=>{
+  const handleDropBacklog=async e=>{
     e.preventDefault();
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
 
-    if(data.projects?.[pid]){
+    const localProj=data?.projects?.[pid];
+    if(localProj){
       updateData(d=>{ const proj=d.projects[pid]; if(!proj) return d; const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid]; return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl}; });
     } else {
-      (async()=>{
-        const{data:row}=await supabase.from("roadmap_state").select("value").eq("key","main").single();
-        if(!row?.value) return;
-        const fresh=row.value;
+      try{
+        const fresh=await getFreshData();
         const proj=fresh.projects?.[pid]; if(!proj) return;
         const bl=fresh.backlog?.includes(pid)?fresh.backlog:[...(fresh.backlog||[]),pid];
         const next={...fresh,projects:{...fresh.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl};
         await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"});
         setData(next);
-      })();
+      }catch(err){console.error("Drop to backlog failed:",err);}
     }
     setDraggingId(null);
   };
 
-  const handleBacklogDragStart=(e,idx)=>{ setBacklogDragIdx(idx); e.dataTransfer.setData("backlogIdx",idx); };
+  // Encode both pid and backlogIdx in a single JSON payload to avoid multi-setData browser conflicts
+  const handleBacklogDragStart=(e,idx)=>{ setBacklogDragIdx(idx); e.dataTransfer.setData("backlogIdx",String(idx)); };
   const handleBacklogDrop=(e,ti)=>{ e.preventDefault(); const fi=parseInt(e.dataTransfer.getData("backlogIdx")); if(isNaN(fi)||fi===ti) return; updateData(d=>{ const bl=[...(d.backlog||[])]; const [r]=bl.splice(fi,1); bl.splice(ti,0,r); return {...d,backlog:bl}; }); setBacklogDragIdx(null); };
 
   const dragStart=(e,pid)=>{ e.dataTransfer.setData("pid",pid); setDraggingId(pid); };
