@@ -553,19 +553,92 @@ export default function App() {
   );
 }
 
+const DRIVER_BAR_COLORS = {
+  "New Feature":       { bg: "#DBEAFE", border: "#93C5FD", text: "#1E40AF", badge: "#EFF6FF" },
+  "Customer Maintain": { bg: "#D1FAE5", border: "#6EE7B7", text: "#065F46", badge: "#ECFDF5" },
+};
+
+function GanttBar({ project, colW, sprintCount, onEdit, onDelete, dragging, onDragStart, onDragEnd }) {
+  const spanCols = Math.min(project.sprintCount || 1, sprintCount - (project.sprintIdx || 0));
+  const colors = DRIVER_BAR_COLORS[project.driver] || DRIVER_BAR_COLORS["New Feature"];
+  const riceColor = RICE_COLOR(project.rice || 0);
+  return (
+    <div
+      draggable
+      onDragStart={e => { e.stopPropagation(); onDragStart(e, project.id); }}
+      onDragEnd={onDragEnd}
+      style={{
+        width: "100%", background: colors.bg, border: `1.5px solid ${colors.border}`,
+        borderRadius: 6, padding: "5px 8px", marginBottom: 2, cursor: "grab",
+        opacity: dragging ? 0.4 : 1, boxSizing: "border-box", overflow: "hidden",
+        boxShadow: dragging ? "none" : "0 1px 3px rgba(0,0,0,0.08)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+        <span style={{ fontWeight: 700, fontSize: 11, color: colors.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {project.name}
+        </span>
+        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+          <button type="button" onClick={e => { e.stopPropagation(); onEdit(project); }}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 3px", color: colors.text, fontSize: 10, opacity: 0.7 }}>✎</button>
+          <button type="button" onClick={e => { e.stopPropagation(); onDelete(project.id); }}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 3px", color: "#EF4444", fontSize: 10 }}>×</button>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 4, marginTop: 3, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ background: colors.badge, color: colors.text, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 600, border: `1px solid ${colors.border}` }}>
+          {project.driver === "Customer Maintain" ? "CM" : "NF"}
+        </span>
+        <span style={{ background: riceColor.bg, color: riceColor.text, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 700 }}>R:{project.rice || 0}</span>
+        <span style={{ background: "rgba(255,255,255,0.6)", color: colors.text, borderRadius: 3, padding: "1px 5px", fontSize: 9 }}>
+          {spanCols} sprint{spanCols !== 1 ? "s" : ""}
+        </span>
+        {project.confluenceUrl && (
+          <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()} style={{ color: colors.text, fontSize: 9, textDecoration: "none", opacity: 0.8 }}>🔗</a>
+        )}
+      </div>
+      {project.businessValue && spanCols > 1 && (
+        <div style={{ fontSize: 10, color: colors.text, opacity: 0.75, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {project.businessValue}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildLaneRows(allProjects, laneId, totalSprints) {
+  const placed = Object.values(allProjects).filter(p => p.laneId === laneId && p.sprintIdx != null);
+  placed.sort((a, b) => (a.sprintIdx || 0) - (b.sprintIdx || 0));
+  const rows = [];
+  placed.forEach(proj => {
+    const start = proj.sprintIdx || 0;
+    const span = Math.min(proj.sprintCount || 1, totalSprints - start);
+    const end = start + span - 1;
+    let wasPlaced = false;
+    for (const row of rows) {
+      const last = row[row.length - 1];
+      const lastEnd = (last.sprintIdx || 0) + Math.min(last.sprintCount || 1, totalSprints - (last.sprintIdx || 0)) - 1;
+      if (start > lastEnd) { row.push(proj); wasPlaced = true; break; }
+    }
+    if (!wasPlaced) rows.push([proj]);
+  });
+  return rows;
+}
+
 function TimelineView({ data, sprintProjects, allProjects, draggingId, dragOverTarget, setDragOverTarget, onDragStart, onDragEnd, onDropCell, onEdit, onDelete, onMarkComplete, onAddToCell }) {
   const sprints = Array.from({ length: data.sprintCount }, (_, i) => i);
-  const CELL_W = 160;
-  const LANE_LABEL_W = 140;
+  const CELL_W = 180;
+  const LANE_LABEL_W = 148;
 
   return (
     <div style={{ overflowX: "auto", padding: "12px 16px" }}>
       <div style={{ minWidth: LANE_LABEL_W + data.sprintCount * CELL_W }}>
         {/* Sprint headers */}
-        <div style={{ display: "flex", marginBottom: 0 }}>
+        <div style={{ display: "flex" }}>
           <div style={{ width: LANE_LABEL_W, flexShrink: 0 }} />
           {sprints.map(i => (
-            <div key={i} style={{ width: CELL_W, flexShrink: 0, padding: "6px 8px", textAlign: "center", borderBottom: "2px solid #2563EB" }}>
+            <div key={i} style={{ width: CELL_W, flexShrink: 0, padding: "6px 8px", textAlign: "center", borderBottom: "2px solid #2563EB", borderRight: "1px solid #E5E7EB" }}>
               <div style={{ fontWeight: 700, fontSize: 11, color: "#2563EB" }}>Sprint {i + 1}</div>
               <div style={{ fontSize: 10, color: "#9CA3AF" }}>
                 {formatDate(data.startDate, data.sprintLengthDays, i)} – {formatDate(data.startDate, data.sprintLengthDays, i + 1)}
@@ -576,57 +649,84 @@ function TimelineView({ data, sprintProjects, allProjects, draggingId, dragOverT
 
         {/* Swimlanes */}
         {data.swimlanes.map((lane, laneIdx) => {
-          // per-sprint capacity
+          const rows = buildLaneRows(allProjects, lane.id, data.sprintCount);
+          const sprintCapacity = {};
+          sprints.forEach(si => {
+            sprintCapacity[si] = Object.values(allProjects).filter(p => p.laneId === lane.id && p.sprintIdx === si).length;
+          });
+
           return (
             <div key={lane.id} style={{ display: "flex", borderBottom: "1px solid #E5E7EB", background: laneIdx % 2 === 0 ? "#fff" : "#F9FAFB" }}>
               {/* Lane label */}
-              <div style={{ width: LANE_LABEL_W, flexShrink: 0, padding: "10px 8px", display: "flex", alignItems: "flex-start", borderRight: "2px solid #E5E7EB" }}>
-                <span style={{ fontWeight: 700, fontSize: 11, color: "#374151", lineHeight: 1.3, writingMode: "horizontal-tb" }}>{lane.name}</span>
+              <div style={{ width: LANE_LABEL_W, flexShrink: 0, padding: "10px 8px", display: "flex", flexDirection: "column", justifyContent: "flex-start", borderRight: "2px solid #E5E7EB" }}>
+                <span style={{ fontWeight: 700, fontSize: 11, color: "#374151", lineHeight: 1.4 }}>{lane.name}</span>
+                <span style={{ fontSize: 9, color: "#9CA3AF", marginTop: 2 }}>
+                  {Object.values(allProjects).filter(p => p.laneId === lane.id && p.sprintIdx != null).length} active
+                </span>
               </div>
 
-              {/* Sprint cells */}
-              {sprints.map(sprintIdx => {
-                const cellProjects = (sprintProjects[lane.id]?.[sprintIdx] || []).map(pid => allProjects[pid]).filter(Boolean);
-                const isDragOver = dragOverTarget?.laneId === lane.id && dragOverTarget?.sprintIdx === sprintIdx;
-                const isFull = cellProjects.length >= 6;
-
-                return (
-                  <div
-                    key={sprintIdx}
-                    onDragOver={e => { if (!isFull || draggingId && cellProjects.find(p => p.id === draggingId)) { e.preventDefault(); setDragOverTarget({ laneId: lane.id, sprintIdx }); } }}
-                    onDragLeave={() => setDragOverTarget(null)}
-                    onDrop={e => onDropCell(e, lane.id, sprintIdx)}
-                    style={{
-                      width: CELL_W, flexShrink: 0, padding: "6px", borderRight: "1px solid #F3F4F6",
-                      minHeight: 80, verticalAlign: "top",
-                      background: isDragOver ? "#EFF6FF" : undefined,
-                      transition: "background 0.15s",
-                      position: "relative",
-                    }}
-                  >
-                    {cellProjects.map(p => (
-                      <ProjectCard
-                        key={p.id}
-                        project={p}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        dragging={draggingId === p.id}
-                        onDragStart={onDragStart}
-                        onDragEnd={onDragEnd}
-                        compact={true}
+              {/* Gantt area */}
+              <div style={{ flex: 1, position: "relative", minHeight: 60 }}>
+                {/* Invisible drop-target grid */}
+                <div style={{ display: "flex", position: "absolute", inset: 0, zIndex: 0 }}>
+                  {sprints.map(sprintIdx => {
+                    const isDragOver = dragOverTarget?.laneId === lane.id && dragOverTarget?.sprintIdx === sprintIdx;
+                    return (
+                      <div key={sprintIdx}
+                        onDragOver={e => { e.preventDefault(); setDragOverTarget({ laneId: lane.id, sprintIdx }); }}
+                        onDragLeave={() => setDragOverTarget(null)}
+                        onDrop={e => onDropCell(e, lane.id, sprintIdx)}
+                        style={{ width: CELL_W, flexShrink: 0, borderRight: "1px solid #F3F4F6", height: "100%", background: isDragOver ? "rgba(37,99,235,0.07)" : "transparent", transition: "background 0.15s" }}
                       />
-                    ))}
-                    <CapacityBar used={cellProjects.length} max={6} />
-                    {!isFull && (
-                      <button
-                        onClick={() => onAddToCell(lane.id, sprintIdx)}
-                        style={{ marginTop: 4, width: "100%", background: "none", border: "1px dashed #D1D5DB", borderRadius: 5, color: "#9CA3AF", fontSize: 10, padding: "3px 0", cursor: "pointer" }}
-                      >+ add</button>
-                    )}
-                    {isFull && <div style={{ fontSize: 9, color: "#EF4444", textAlign: "center", marginTop: 2 }}>Full (6/6)</div>}
+                    );
+                  })}
+                </div>
+
+                {/* Gantt bars */}
+                <div style={{ position: "relative", zIndex: 1, paddingTop: 6, paddingBottom: 2 }}>
+                  {rows.length === 0 && (
+                    <div style={{ height: 24 }} />
+                  )}
+                  {rows.map((row, rowIdx) => {
+                    const items = [];
+                    let cursor = 0;
+                    row.forEach(proj => {
+                      const startCol = proj.sprintIdx || 0;
+                      const spanCols = Math.min(proj.sprintCount || 1, data.sprintCount - startCol);
+                      if (startCol > cursor) {
+                        items.push(<div key={`sp-${proj.id}`} style={{ width: (startCol - cursor) * CELL_W, flexShrink: 0 }} />);
+                      }
+                      items.push(
+                        <div key={proj.id} style={{ width: spanCols * CELL_W, flexShrink: 0, paddingLeft: 4, paddingRight: 4, boxSizing: "border-box" }}>
+                          <GanttBar project={proj} colW={CELL_W} sprintCount={data.sprintCount}
+                            onEdit={onEdit} onDelete={onDelete}
+                            dragging={draggingId === proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+                        </div>
+                      );
+                      cursor = startCol + spanCols;
+                    });
+                    return <div key={rowIdx} style={{ display: "flex", alignItems: "flex-start", marginBottom: 2 }}>{items}</div>;
+                  })}
+
+                  {/* Capacity + add buttons row */}
+                  <div style={{ display: "flex", borderTop: "1px dashed #E5E7EB", marginTop: 4 }}>
+                    {sprints.map(si => {
+                      const count = sprintCapacity[si] || 0;
+                      const isFull = count >= 6;
+                      return (
+                        <div key={si} style={{ width: CELL_W, flexShrink: 0, padding: "3px 4px" }}>
+                          <CapacityBar used={count} max={6} />
+                          {!isFull
+                            ? <button type="button" onClick={() => onAddToCell(lane.id, si)}
+                                style={{ marginTop: 3, width: "100%", background: "none", border: "1px dashed #D1D5DB", borderRadius: 4, color: "#9CA3AF", fontSize: 9, padding: "2px 0", cursor: "pointer" }}>+ add</button>
+                            : <div style={{ fontSize: 9, color: "#EF4444", textAlign: "center", marginTop: 3 }}>Full</div>
+                          }
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              </div>
             </div>
           );
         })}
