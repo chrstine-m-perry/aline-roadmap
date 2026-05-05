@@ -97,6 +97,7 @@ function GanttBar({ project, sprintCount, onEdit, onDelete, dragging, onDragStar
         <span style={{ background:c.bg, color:c.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600, border:`1px solid ${c.border}` }}>{project.driver==="Customer Maintain"?"CM":"NF"}</span>
         <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>S:{project.rice||0}</span>
         <span style={{ background:"#F1F5F9", color:A.textSecond, borderRadius:4, padding:"1px 6px", fontSize:10 }}>{spanCols}sp</span>
+        {project.sourceId&&<span style={{ background:"#EBF4FB", color:"#1A5C8A", borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600 }}>↗ Board</span>}
         {project.confluenceUrl && <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ color:A.textLink, fontSize:10, textDecoration:"none" }}>🔗</a>}
       </div>
       {project.businessValue && spanCols>1 && (
@@ -299,6 +300,7 @@ function ListView({ data, allProjects, onEdit, onDelete, onMarkComplete }) {
                           <span style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>{p.driver}</span>
                           <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>Score: {p.rice}</span>
                           <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"2px 8px",fontSize:11}}>{p.sprintCount} sprint{p.sprintCount!==1?"s":""}</span>
+                          {p.sourceId&&<span style={{background:"#EBF4FB",color:"#1A5C8A",border:"1px solid #A8D0EF",borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>↗ From scoring board</span>}
                           {p.confluenceUrl&&<a href={p.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:A.textLink,fontSize:11,textDecoration:"none",fontWeight:600}}>📄 Confluence</a>}
                         </div>
                         <div style={{display:"flex",gap:8}}>
@@ -340,6 +342,7 @@ function BacklogPanel({ data, allProjects, draggingId, backlogDragIdx, onDragSta
                 <div style={{fontWeight:600,fontSize:12,color:A.textPrimary,lineHeight:1.3,marginBottom:4}}>
                   <span style={{color:A.textSecond,marginRight:4,fontSize:11}}>#{idx+1}</span>{p.name}
                 </div>
+                {p.sourceId&&<div style={{fontSize:10,background:"#EBF4FB",color:"#1A5C8A",border:"1px solid #A8D0EF",borderRadius:4,padding:"1px 6px",marginBottom:4,display:"inline-block",fontWeight:600}}>↗ From scoring board</div>}
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
                   <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>S:{p.rice||0}</span>
                   <span style={{background:c.bg,color:c.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600,border:`1px solid ${c.border}`}}>{p.driver==="Customer Maintain"?"CM":"NF"}</span>
