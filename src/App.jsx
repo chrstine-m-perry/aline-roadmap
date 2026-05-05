@@ -226,22 +226,26 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                 <span style={{ fontSize:11, color:A.textSecond, marginTop:3, fontFamily:A.font }}>{active} active</span>
               </div>
               <div style={{ flex:1, position:"relative", minHeight:64 }}>
-                {/* Drop grid */}
-                <div style={{ display:"flex", position:"absolute", inset:0, zIndex:0 }}>
+                {/* Single unified drag-drop surface — sits above everything */}
+                <div style={{ display:"flex", position:"absolute", inset:0, zIndex:10 }}>
                   {sprints.map(si=>{
                     const over=dragOverTarget?.laneId===lane.id&&dragOverTarget?.sprintIdx===si;
-                    return <div key={si} onDragOver={e=>{e.preventDefault();setDragOverTarget({laneId:lane.id,sprintIdx:si});}} onDragLeave={()=>setDragOverTarget(null)} onDrop={e=>onDropCell(e,lane.id,si)} style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.08)":"transparent", transition:"background 0.15s" }}/>;
+                    return <div key={si}
+                      onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOverTarget({laneId:lane.id,sprintIdx:si});}}
+                      onDragLeave={e=>{e.preventDefault();setDragOverTarget(null);}}
+                      onDrop={e=>{e.preventDefault();e.stopPropagation();onDropCell(e,lane.id,si);}}
+                      style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.12)":"transparent", transition:"background 0.15s", cursor:"copy" }}/>;
                   })}
                 </div>
-                {/* Bars */}
-                <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4 }}>
+                {/* Bars — pointer-events none so drag events pass through to drop zones */}
+                <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4, pointerEvents:"none" }}>
                   {rows.length===0&&<div style={{height:20}}/>}
                   {rows.map((row,ri)=>{
                     const items=[]; let cursor=0;
                     row.forEach(proj=>{
                       const s=proj.sprintIdx||0, span=Math.min(proj.sprintCount||1,data.sprintCount-s);
                       if(s>cursor) items.push(<div key={`sp-${proj.id}`} style={{width:(s-cursor)*CW,flexShrink:0}}/>);
-                      items.push(<div key={proj.id} style={{width:span*CW,flexShrink:0,paddingLeft:4,paddingRight:4,boxSizing:"border-box"}}><GanttBar project={proj} sprintCount={data.sprintCount} onEdit={onEdit} onDelete={onDelete} dragging={draggingId===proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd}/></div>);
+                      items.push(<div key={proj.id} style={{width:span*CW,flexShrink:0,paddingLeft:4,paddingRight:4,boxSizing:"border-box",pointerEvents:"all"}}><GanttBar project={proj} sprintCount={data.sprintCount} onEdit={onEdit} onDelete={onDelete} dragging={draggingId===proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd}/></div>);
                       cursor=s+span;
                     });
                     return <div key={ri} style={{display:"flex",alignItems:"flex-start",marginBottom:2}}>{items}</div>;
@@ -251,7 +255,7 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                     {sprints.map(si=>{
                       const count=cap[si]||0, full=count>=6;
                       return (
-                        <div key={si} style={{width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,boxSizing:"border-box",padding:"3px 4px",borderLeft:`1px solid ${A.borderCard}`}}>
+                        <div key={si} style={{width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,boxSizing:"border-box",padding:"3px 4px",borderLeft:`1px solid ${A.borderCard}`,pointerEvents:"all"}}>
                           <CapBar used={count} max={6}/>
                           {!full
                             ?<button type="button" onClick={()=>onAddToCell(lane.id,si)} style={{marginTop:3,width:"100%",background:"none",border:`1px dashed ${A.borderCard}`,borderRadius:4,color:A.textSecond,fontSize:10,padding:"2px 0",cursor:"pointer",fontFamily:A.font}}>+ add</button>
@@ -391,7 +395,7 @@ export default function App() {
       setLoading(false);
     })();
 
-    // Re-sync when tab regains focus — catches items added from scoring board
+    // Re-sync when tab regains focus — picks up items added from scoring board
     const onFocus=async()=>{
       try{
         const{data:rows}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
@@ -410,7 +414,6 @@ export default function App() {
     });
   },[]);
 
-  // Helper: get fresh state from Supabase (used when local state may be stale)
   const getFreshData=async()=>{
     const{data:rows}=await supabase.from("roadmap_state").select("value").eq("key","main").single();
     return rows?.value||defaultData();
@@ -445,7 +448,6 @@ export default function App() {
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
     setDragOverTarget(null); setDraggingId(null);
 
-    // Try local state first; if project missing, fetch fresh from Supabase
     const localProj=data?.projects?.[pid];
     if(localProj){
       updateData(d=>{
@@ -455,7 +457,6 @@ export default function App() {
         return {...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
       });
     } else {
-      // Project was written externally (from scoring board) — fetch fresh state
       try{
         const fresh=await getFreshData();
         const proj=fresh.projects?.[pid]; if(!proj) return;
@@ -471,7 +472,6 @@ export default function App() {
   const handleDropBacklog=async e=>{
     e.preventDefault();
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
-
     const localProj=data?.projects?.[pid];
     if(localProj){
       updateData(d=>{ const proj=d.projects[pid]; if(!proj) return d; const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid]; return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl}; });
@@ -488,7 +488,6 @@ export default function App() {
     setDraggingId(null);
   };
 
-  // Encode both pid and backlogIdx in a single JSON payload to avoid multi-setData browser conflicts
   const handleBacklogDragStart=(e,idx)=>{ setBacklogDragIdx(idx); e.dataTransfer.setData("backlogIdx",String(idx)); };
   const handleBacklogDrop=(e,ti)=>{ e.preventDefault(); const fi=parseInt(e.dataTransfer.getData("backlogIdx")); if(isNaN(fi)||fi===ti) return; updateData(d=>{ const bl=[...(d.backlog||[])]; const [r]=bl.splice(fi,1); bl.splice(ti,0,r); return {...d,backlog:bl}; }); setBacklogDragIdx(null); };
 
