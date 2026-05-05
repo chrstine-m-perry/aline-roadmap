@@ -95,7 +95,7 @@ function GanttBar({ project, sprintCount, onEdit, onDelete, dragging, onDragStar
       </div>
       <div style={{ display:"flex", gap:4, marginTop:4, alignItems:"center", flexWrap:"wrap" }}>
         <span style={{ background:c.bg, color:c.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600, border:`1px solid ${c.border}` }}>{project.driver==="Customer Maintain"?"CM":"NF"}</span>
-        <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>R:{project.rice||0}</span>
+        <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>S:{project.rice||0}</span>
         <span style={{ background:"#F1F5F9", color:A.textSecond, borderRadius:4, padding:"1px 6px", fontSize:10 }}>{spanCols}sp</span>
         {project.confluenceUrl && <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ color:A.textLink, fontSize:10, textDecoration:"none" }}>🔗</a>}
       </div>
@@ -136,7 +136,7 @@ function ProjectModal({ project, onSave, onClose }) {
           <label style={labelSt}>Initiative title *<input value={form.name} onChange={e=>set("name",e.target.value)} style={inputSt} placeholder="Initiative title" /></label>
           <label style={labelSt}>Initiative description<textarea value={form.businessValue} onChange={e=>set("businessValue",e.target.value)} style={{...inputSt,height:64,resize:"vertical"}} placeholder="Why this matters..." /></label>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-            <label style={labelSt}>RICE score<input type="number" value={form.rice} onChange={e=>set("rice",+e.target.value)} style={inputSt} min={0} max={200} /></label>
+            <label style={labelSt}>Score<input type="number" value={form.rice} onChange={e=>set("rice",+e.target.value)} style={inputSt} min={0} max={200} /></label>
             <label style={labelSt}>Sprint count<input type="number" value={form.sprintCount} onChange={e=>set("sprintCount",+e.target.value)} style={inputSt} min={1} max={20} /></label>
           </div>
           <label style={labelSt}>Driver<select value={form.driver} onChange={e=>set("driver",e.target.value)} style={inputSt}><option>New Feature</option><option>Customer Maintain</option></select></label>
@@ -297,7 +297,7 @@ function ListView({ data, allProjects, onEdit, onDelete, onMarkComplete }) {
                         {p.businessValue&&<div style={{fontSize:12,color:A.textSecond,marginBottom:10,lineHeight:1.4}}>{p.businessValue}</div>}
                         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
                           <span style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>{p.driver}</span>
-                          <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>RICE: {p.rice}</span>
+                          <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>Score: {p.rice}</span>
                           <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"2px 8px",fontSize:11}}>{p.sprintCount} sprint{p.sprintCount!==1?"s":""}</span>
                           {p.confluenceUrl&&<a href={p.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:A.textLink,fontSize:11,textDecoration:"none",fontWeight:600}}>📄 Confluence</a>}
                         </div>
@@ -341,7 +341,7 @@ function BacklogPanel({ data, allProjects, draggingId, backlogDragIdx, onDragSta
                   <span style={{color:A.textSecond,marginRight:4,fontSize:11}}>#{idx+1}</span>{p.name}
                 </div>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
-                  <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>R:{p.rice||0}</span>
+                  <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>S:{p.rice||0}</span>
                   <span style={{background:c.bg,color:c.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600,border:`1px solid ${c.border}`}}>{p.driver==="Customer Maintain"?"CM":"NF"}</span>
                   <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"1px 6px",fontSize:10}}>{p.sprintCount||1}sp</span>
                 </div>
