@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://ftwdycuopzfiledwceme.supabase.co";
@@ -7,16 +7,33 @@ const SUPABASE_KEY =
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const DRIVER_COLORS = {
-  "Customer Maintain": { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
-  "New Feature": { bg: "#F0FDF4", text: "#15803D", border: "#BBF7D0" },
+/* ── Aline Design Tokens ──────────────────────────────────────── */
+const A = {
+  sidebar:     "#14273D",
+  interactive: "#337AB8",
+  textOnDark:  "#E2E8F0",
+  canvas:      "#FFFFFF",
+  card:        "#FFFFFF",
+  borderCard:  "#E2E8F0",
+  textPrimary: "#14273D",
+  textSecond:  "#64748B",
+  textLink:    "#337AB8",
+  shadowCard:  "0 1px 3px rgba(0,0,0,0.08)",
+  font:        "'DM Sans', Arial, sans-serif",
+  statusGood:  "#22C55E",
+  statusLate:  "#F97316",
+  statusCrit:  "#EF4444",
 };
 
-const RICE_COLOR = (score) => {
-  if (score >= 80) return { bg: "#F0FDF4", text: "#15803D" };
-  if (score >= 50) return { bg: "#FEFCE8", text: "#A16207" };
-  return { bg: "#FFF7ED", text: "#C2410C" };
+const DRIVER_COLORS = {
+  "New Feature":       { bg: "#EBF4FB", text: "#1A5C8A", border: "#A8D0EF" },
+  "Customer Maintain": { bg: "#EDFAF0", text: "#1A5C2A", border: "#A8D8A8" },
 };
+
+const RICE_COLOR = (s) =>
+  s >= 80 ? { bg: "#EDFAF0", text: "#15803D" }
+  : s >= 50 ? { bg: "#FFFBEB", text: "#92400E" }
+  : { bg: "#FFF4ED", text: "#C2410C" };
 
 const genId = () => Math.random().toString(36).slice(2, 10);
 
@@ -40,686 +57,203 @@ function formatDate(isoDate, sprintLengthDays, sprintIndex) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ProjectCard({ project, onEdit, onDelete, dragging, onDragStart, onDragEnd, compact }) {
-  const driver = DRIVER_COLORS[project.driver] || DRIVER_COLORS["New Feature"];
-  const riceColor = RICE_COLOR(project.rice || 0);
+/* ── Style helpers ────────────────────────────────────────────── */
+const labelSt = { display:"flex", flexDirection:"column", gap:4, fontSize:13, color:A.textPrimary, fontWeight:600, fontFamily:A.font };
+const inputSt = { padding:"8px 10px", border:`1px solid ${A.borderCard}`, borderRadius:6, fontSize:13, color:A.textPrimary, background:A.canvas, outline:"none", fontFamily:A.font };
+const btnP  = { padding:"8px 18px", background:A.interactive, color:"#fff", border:"none", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:A.font };
+const btnS  = { padding:"8px 18px", background:A.canvas, color:A.interactive, border:`1px solid ${A.interactive}`, borderRadius:6, fontSize:13, cursor:"pointer", fontFamily:A.font };
+const btnG  = { padding:"6px 14px", background:A.canvas, color:A.textPrimary, border:`1px solid ${A.borderCard}`, borderRadius:6, fontSize:13, cursor:"pointer", fontFamily:A.font };
 
-  return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.stopPropagation();
-        onDragStart(e, project.id);
-      }}
-      onDragEnd={onDragEnd}
-      style={{
-        background: "#fff",
-        border: "1px solid #E5E7EB",
-        borderRadius: 8,
-        padding: compact ? "6px 8px" : "8px 10px",
-        marginBottom: 4,
-        cursor: "grab",
-        opacity: dragging ? 0.4 : 1,
-        fontSize: 11,
-        position: "relative",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-        transition: "opacity 0.15s",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 4 }}>
-        <span style={{ fontWeight: 600, fontSize: 11, color: "#111827", lineHeight: 1.3, flex: 1 }}>
-          {project.name}
-        </span>
-        <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(project); }}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 3px", color: "#9CA3AF", fontSize: 10, borderRadius: 3 }}
-            title="Edit"
-          >✎</button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(project.id); }}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 3px", color: "#EF4444", fontSize: 10, borderRadius: 3 }}
-            title="Delete"
-          >×</button>
-        </div>
-      </div>
-      {!compact && project.businessValue && (
-        <div style={{ color: "#6B7280", fontSize: 10, marginTop: 2, lineHeight: 1.3 }}>{project.businessValue}</div>
-      )}
-      <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ background: driver.bg, color: driver.text, border: `1px solid ${driver.border}`, borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 600 }}>
-          {project.driver === "Customer Maintain" ? "CM" : "NF"}
-        </span>
-        <span style={{ background: riceColor.bg, color: riceColor.text, borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 700 }}>
-          R:{project.rice || 0}
-        </span>
-        <span style={{ background: "#F3F4F6", color: "#374151", borderRadius: 4, padding: "1px 5px", fontSize: 9 }}>
-          {project.sprintCount || 1}sp
-        </span>
-        {project.confluenceUrl && (
-          <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            style={{ color: "#2563EB", fontSize: 9, textDecoration: "none", fontWeight: 600 }}
-            title="Confluence">🔗</a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ProjectModal({ project, onSave, onClose }) {
-  const [form, setForm] = useState(
-    project || {
-      id: genId(), name: "", businessValue: "", rice: 50, sprintCount: 1,
-      driver: "New Feature", confluenceUrl: "",
-    }
-  );
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 24, width: 420, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#111827" }}>
-          {project ? "Edit project" : "Add project"}
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <label style={labelStyle}>
-            Name *
-            <input value={form.name} onChange={e => set("name", e.target.value)} style={inputStyle} placeholder="Project name" />
-          </label>
-          <label style={labelStyle}>
-            Business value
-            <textarea value={form.businessValue} onChange={e => set("businessValue", e.target.value)} style={{ ...inputStyle, height: 60, resize: "vertical" }} placeholder="Why this matters..." />
-          </label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <label style={labelStyle}>
-              RICE score
-              <input type="number" value={form.rice} onChange={e => set("rice", +e.target.value)} style={inputStyle} min={0} max={200} />
-            </label>
-            <label style={labelStyle}>
-              Sprint count
-              <input type="number" value={form.sprintCount} onChange={e => set("sprintCount", +e.target.value)} style={inputStyle} min={1} max={10} />
-            </label>
-          </div>
-          <label style={labelStyle}>
-            Driver
-            <select value={form.driver} onChange={e => set("driver", e.target.value)} style={inputStyle}>
-              <option>New Feature</option>
-              <option>Customer Maintain</option>
-            </select>
-          </label>
-          <label style={labelStyle}>
-            Confluence URL
-            <input value={form.confluenceUrl} onChange={e => set("confluenceUrl", e.target.value)} style={inputStyle} placeholder="https://..." />
-          </label>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={btnSecondary}>Cancel</button>
-          <button onClick={() => form.name && onSave(form)} style={btnPrimary} disabled={!form.name}>
-            {project ? "Save changes" : "Add project"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const labelStyle = { display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#374151", fontWeight: 500 };
-const inputStyle = { padding: "7px 10px", border: "1px solid #D1D5DB", borderRadius: 7, fontSize: 13, color: "#111827", background: "#fff", outline: "none" };
-const btnPrimary = { padding: "8px 18px", background: "#2563EB", color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer" };
-const btnSecondary = { padding: "8px 18px", background: "#F3F4F6", color: "#374151", border: "1px solid #E5E7EB", borderRadius: 7, fontSize: 13, cursor: "pointer" };
-
-function SettingsModal({ data, onSave, onClose }) {
-  const [sprintLen, setSprintLen] = useState(data.sprintLengthDays);
-  const [sprintCount, setSprintCount] = useState(data.sprintCount);
-  const [startDate, setStartDate] = useState(data.startDate);
-  const [lanes, setLanes] = useState(data.swimlanes.map(l => ({ ...l })));
-  const [newLane, setNewLane] = useState("");
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 24, width: 440, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700 }}>Settings</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={labelStyle}>Sprint length (days)
-            <input type="number" value={sprintLen} onChange={e => setSprintLen(+e.target.value)} style={inputStyle} min={1} max={60} />
-          </label>
-          <label style={labelStyle}>Number of sprints
-            <input type="number" value={sprintCount} onChange={e => setSprintCount(+e.target.value)} style={inputStyle} min={1} max={24} />
-          </label>
-          <label style={labelStyle}>Start date
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
-          </label>
-          <div>
-            <div style={{ fontSize: 12, color: "#374151", fontWeight: 500, marginBottom: 6 }}>Swimlanes</div>
-            {lanes.map((lane, i) => (
-              <div key={lane.id} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-                <input value={lane.name} onChange={e => { const l = [...lanes]; l[i].name = e.target.value; setLanes(l); }} style={{ ...inputStyle, flex: 1 }} />
-                <button onClick={() => setLanes(lanes.filter((_, j) => j !== i))} style={{ ...btnSecondary, padding: "7px 10px", color: "#EF4444" }}>×</button>
-              </div>
-            ))}
-            <div style={{ display: "flex", gap: 6 }}>
-              <input value={newLane} onChange={e => setNewLane(e.target.value)} placeholder="New lane name..." style={{ ...inputStyle, flex: 1 }} />
-              <button onClick={() => { if (newLane.trim()) { setLanes([...lanes, { id: genId(), name: newLane.trim() }]); setNewLane(""); } }} style={btnSecondary}>Add</button>
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={btnSecondary}>Cancel</button>
-          <button onClick={() => onSave({ sprintLengthDays: sprintLen, sprintCount, startDate, swimlanes: lanes })} style={btnPrimary}>Save</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CapacityBar({ used, max }) {
+/* ── Capacity bar ─────────────────────────────────────────────── */
+function CapBar({ used, max }) {
   const pct = Math.min(1, used / max);
-  const color = pct >= 1 ? "#EF4444" : pct >= 0.75 ? "#F59E0B" : "#10B981";
+  const color = pct >= 1 ? A.statusCrit : pct >= 0.75 ? A.statusLate : A.statusGood;
   return (
-    <div style={{ height: 4, background: "#E5E7EB", borderRadius: 2, marginTop: 4, overflow: "hidden" }}>
-      <div style={{ height: "100%", width: `${pct * 100}%`, background: color, borderRadius: 2, transition: "width 0.3s" }} />
+    <div style={{ height:3, background:A.borderCard, borderRadius:2, marginTop:4, overflow:"hidden" }}>
+      <div style={{ height:"100%", width:`${pct*100}%`, background:color, borderRadius:2, transition:"width 0.3s" }} />
     </div>
   );
 }
 
-export default function App() {
-  const [data, setData] = useState(null);
-  const [view, setView] = useState("timeline");
-  const [showBacklog, setShowBacklog] = useState(true);
-  const [editProject, setEditProject] = useState(null);
-  const [addingTo, setAddingTo] = useState(null); // {type:'sprint'|'backlog', laneId, sprintIdx}
-  const [showSettings, setShowSettings] = useState(false);
-  const [draggingId, setDraggingId] = useState(null);
-  const [dragOverTarget, setDragOverTarget] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [backlogDragIdx, setBacklogDragIdx] = useState(null);
-  const [completedOpen, setCompletedOpen] = useState(false);
-
-  // Supabase load/save
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const { data: rows, error: err } = await supabase
-          .from("roadmap_state")
-          .select("*")
-          .eq("key", "main")
-          .single();
-        if (err && err.code !== "PGRST116") throw err;
-        if (rows?.value) {
-          setData(rows.value);
-        } else {
-          setData(defaultData());
-        }
-      } catch (e) {
-        console.error("Load error:", e);
-        setData(defaultData());
-        setError("Could not connect to Supabase — using local state. Create a table 'roadmap_state' with columns key (text) and value (jsonb).");
-      }
-      setLoading(false);
-    };
-    loadData();
-  }, []);
-
-  const save = useCallback(async (newData) => {
-    setData(newData);
-    try {
-      await supabase.from("roadmap_state").upsert({ key: "main", value: newData }, { onConflict: "key" });
-    } catch (e) {
-      console.error("Save error:", e);
-    }
-  }, []);
-
-  const updateData = useCallback((updater) => {
-    setData(prev => {
-      const next = updater(prev);
-      const doSave = async () => {
-        try {
-          await supabase.from("roadmap_state").upsert({ key: "main", value: next }, { onConflict: "key" });
-        } catch (e) {
-          console.error("Save error:", e);
-        }
-      };
-      doSave();
-      return next;
-    });
-  }, []);
-
-  // Derive sprint cells: projects[laneId][sprintIdx] = [projectId, ...]
-  const getSprintProjects = (d) => {
-    const result = {};
-    if (!d) return result;
-    d.swimlanes.forEach(lane => {
-      result[lane.id] = {};
-      for (let i = 0; i < d.sprintCount; i++) result[lane.id][i] = [];
-    });
-    Object.entries(d.projects || {}).forEach(([pid, proj]) => {
-      if (proj.sprintIdx != null && proj.laneId && result[proj.laneId]) {
-        const idx = proj.sprintIdx;
-        if (!result[proj.laneId][idx]) result[proj.laneId][idx] = [];
-        result[proj.laneId][idx].push(pid);
-      }
-    });
-    return result;
-  };
-
-  const handleSaveProject = (proj, targetLaneId, targetSprintIdx) => {
-    updateData(d => {
-      const projs = { ...(d.projects || {}), [proj.id]: { ...proj, laneId: proj.laneId || targetLaneId, sprintIdx: proj.sprintIdx ?? targetSprintIdx } };
-      return { ...d, projects: projs };
-    });
-    setEditProject(null);
-    setAddingTo(null);
-  };
-
-  const handleSaveNewProject = (proj) => {
-    updateData(d => {
-      if (addingTo?.type === "sprint") {
-        const newProj = { ...proj, laneId: addingTo.laneId, sprintIdx: addingTo.sprintIdx };
-        return { ...d, projects: { ...(d.projects || {}), [proj.id]: newProj } };
-      } else {
-        const backlog = [...(d.backlog || []), proj.id];
-        return { ...d, projects: { ...(d.projects || {}), [proj.id]: proj }, backlog };
-      }
-    });
-    setAddingTo(null);
-  };
-
-  const handleEditProject = (proj) => {
-    setEditProject(proj);
-  };
-
-  const handleUpdateEditedProject = (proj) => {
-    updateData(d => ({ ...d, projects: { ...d.projects, [proj.id]: { ...d.projects[proj.id], ...proj } } }));
-    setEditProject(null);
-  };
-
-  const handleDeleteProject = (pid) => {
-    updateData(d => {
-      const projs = { ...d.projects };
-      delete projs[pid];
-      return {
-        ...d,
-        projects: projs,
-        backlog: (d.backlog || []).filter(id => id !== pid),
-        completed: (d.completed || []).filter(id => id !== pid),
-      };
-    });
-  };
-
-  const handleMarkComplete = (pid) => {
-    updateData(d => {
-      const proj = d.projects[pid];
-      if (!proj) return d;
-      const updatedProj = { ...proj, laneId: undefined, sprintIdx: undefined };
-      return {
-        ...d,
-        projects: { ...d.projects, [pid]: updatedProj },
-        completed: [...(d.completed || []), pid],
-        backlog: (d.backlog || []).filter(id => id !== pid),
-      };
-    });
-  };
-
-  // Drag-and-drop
-  const handleDragStart = (e, pid) => {
-    e.dataTransfer.setData("pid", pid);
-    setDraggingId(pid);
-  };
-  const handleDragEnd = () => { setDraggingId(null); setDragOverTarget(null); };
-
-  const handleDropOnCell = (e, laneId, sprintIdx) => {
-    e.preventDefault();
-    const pid = e.dataTransfer.getData("pid");
-    if (!pid) return;
-    updateData(d => {
-      const cell = getSprintProjects(d)[laneId]?.[sprintIdx] || [];
-      if (cell.length >= 6) return d;
-      const proj = d.projects[pid];
-      if (!proj) return d;
-      const updatedProj = { ...proj, laneId, sprintIdx };
-      return {
-        ...d,
-        projects: { ...d.projects, [pid]: updatedProj },
-        backlog: (d.backlog || []).filter(id => id !== pid),
-        completed: (d.completed || []).filter(id => id !== pid),
-      };
-    });
-    setDragOverTarget(null);
-    setDraggingId(null);
-  };
-
-  const handleDropOnBacklog = (e) => {
-    e.preventDefault();
-    const pid = e.dataTransfer.getData("pid");
-    if (!pid) return;
-    updateData(d => {
-      const proj = d.projects[pid];
-      if (!proj) return d;
-      const updatedProj = { ...proj, laneId: undefined, sprintIdx: undefined };
-      const backlog = d.backlog?.includes(pid) ? d.backlog : [...(d.backlog || []), pid];
-      return { ...d, projects: { ...d.projects, [pid]: updatedProj }, backlog };
-    });
-    setDraggingId(null);
-  };
-
-  // Backlog drag reorder
-  const handleBacklogDragStart = (e, idx) => { setBacklogDragIdx(idx); e.dataTransfer.setData("backlogIdx", idx); };
-  const handleBacklogDrop = (e, targetIdx) => {
-    e.preventDefault();
-    const fromIdx = parseInt(e.dataTransfer.getData("backlogIdx"));
-    if (isNaN(fromIdx) || fromIdx === targetIdx) return;
-    updateData(d => {
-      const bl = [...(d.backlog || [])];
-      const [removed] = bl.splice(fromIdx, 1);
-      bl.splice(targetIdx, 0, removed);
-      return { ...d, backlog: bl };
-    });
-    setBacklogDragIdx(null);
-  };
-
-  const handleSaveSettings = (settings) => {
-    updateData(d => ({ ...d, ...settings }));
-    setShowSettings(false);
-  };
-
-  if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: "#6B7280", fontSize: 14 }}>
-      Loading roadmap...
-    </div>
-  );
-
-  if (!data) return null;
-
-  const sprintProjects = getSprintProjects(data);
-  const allProjects = data.projects || {};
-
-  return (
-    <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#111827" }}>
-      {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 17, color: "#111827", letterSpacing: "-0.3px" }}>Sprint Roadmap</div>
-          <div style={{ fontSize: 11, color: "#6B7280", marginTop: 1 }}>
-            {data.sprintLengthDays}-day sprints · {data.sprintCount} sprints · starts {data.startDate}
-          </div>
-        </div>
-        {error && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626", borderRadius: 6, padding: "4px 10px", fontSize: 11 }}>{error}</div>}
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <div style={{ display: "flex", border: "1px solid #E5E7EB", borderRadius: 7, overflow: "hidden" }}>
-            {["timeline", "list"].map(v => (
-              <button key={v} onClick={() => setView(v)}
-                style={{ padding: "6px 14px", background: view === v ? "#2563EB" : "#fff", color: view === v ? "#fff" : "#374151", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                {v.charAt(0).toUpperCase() + v.slice(1)}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setShowBacklog(b => !b)} style={{ ...btnSecondary, padding: "6px 12px", fontSize: 12, fontWeight: 600, background: showBacklog ? "#EFF6FF" : undefined, color: showBacklog ? "#1D4ED8" : undefined }}>
-            Backlog ({(data.backlog || []).length})
-          </button>
-          <button onClick={() => setShowSettings(true)} style={{ ...btnSecondary, padding: "6px 10px", fontSize: 13 }}>⚙</button>
-          <button onClick={() => setAddingTo({ type: "backlog" })} style={{ ...btnPrimary, padding: "6px 14px", fontSize: 12 }}>+ Project</button>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 0 }}>
-        {/* Main content */}
-        <div style={{ flex: 1, overflow: "auto", minWidth: 0 }}>
-          {view === "timeline" ? (
-            <TimelineView
-              data={data}
-              sprintProjects={sprintProjects}
-              allProjects={allProjects}
-              draggingId={draggingId}
-              dragOverTarget={dragOverTarget}
-              setDragOverTarget={setDragOverTarget}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDropCell={handleDropOnCell}
-              onEdit={handleEditProject}
-              onDelete={handleDeleteProject}
-              onMarkComplete={handleMarkComplete}
-              onAddToCell={(laneId, sprintIdx) => setAddingTo({ type: "sprint", laneId, sprintIdx })}
-            />
-          ) : (
-            <ListView
-              data={data}
-              sprintProjects={sprintProjects}
-              allProjects={allProjects}
-              onEdit={handleEditProject}
-              onDelete={handleDeleteProject}
-              onMarkComplete={handleMarkComplete}
-            />
-          )}
-
-          {/* Completed */}
-          <div style={{ margin: "16px 16px 8px", borderTop: "1px solid #E5E7EB", paddingTop: 12 }}>
-            <button onClick={() => setCompletedOpen(o => !o)}
-              style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 10 }}>{completedOpen ? "▼" : "▶"}</span>
-              Completed ({(data.completed || []).length})
-            </button>
-            {completedOpen && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                {(data.completed || []).map(pid => {
-                  const p = allProjects[pid];
-                  if (!p) return null;
-                  return (
-                    <div key={pid} style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 7, padding: "6px 10px", fontSize: 11 }}>
-                      <span style={{ fontWeight: 600, color: "#15803D" }}>✓ {p.name}</span>
-                      <button onClick={() => handleDeleteProject(pid)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 10, marginLeft: 6 }}>×</button>
-                    </div>
-                  );
-                })}
-                {(data.completed || []).length === 0 && <div style={{ fontSize: 12, color: "#9CA3AF" }}>No completed projects yet.</div>}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Backlog Panel */}
-        {showBacklog && (
-          <BacklogPanel
-            data={data}
-            allProjects={allProjects}
-            draggingId={draggingId}
-            backlogDragIdx={backlogDragIdx}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDropOnBacklog}
-            onBacklogDragStart={handleBacklogDragStart}
-            onBacklogDrop={handleBacklogDrop}
-            onEdit={handleEditProject}
-            onDelete={handleDeleteProject}
-            onMarkComplete={handleMarkComplete}
-            onAdd={() => setAddingTo({ type: "backlog" })}
-          />
-        )}
-      </div>
-
-      {/* Modals */}
-      {(addingTo || editProject) && (
-        <ProjectModal
-          project={editProject || null}
-          onSave={editProject ? handleUpdateEditedProject : handleSaveNewProject}
-          onClose={() => { setEditProject(null); setAddingTo(null); }}
-        />
-      )}
-      {showSettings && (
-        <SettingsModal data={data} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />
-      )}
-    </div>
-  );
-}
-
-const DRIVER_BAR_COLORS = {
-  "New Feature":       { bg: "#DBEAFE", border: "#93C5FD", text: "#1E40AF", badge: "#EFF6FF" },
-  "Customer Maintain": { bg: "#D1FAE5", border: "#6EE7B7", text: "#065F46", badge: "#ECFDF5" },
-};
-
-function GanttBar({ project, colW, sprintCount, onEdit, onDelete, dragging, onDragStart, onDragEnd }) {
+/* ── Gantt bar ────────────────────────────────────────────────── */
+function GanttBar({ project, sprintCount, onEdit, onDelete, dragging, onDragStart, onDragEnd }) {
   const spanCols = Math.min(project.sprintCount || 1, sprintCount - (project.sprintIdx || 0));
-  const colors = DRIVER_BAR_COLORS[project.driver] || DRIVER_BAR_COLORS["New Feature"];
-  const riceColor = RICE_COLOR(project.rice || 0);
+  const c = DRIVER_COLORS[project.driver] || DRIVER_COLORS["New Feature"];
+  const rc = RICE_COLOR(project.rice || 0);
   return (
-    <div
-      draggable
+    <div draggable
       onDragStart={e => { e.stopPropagation(); onDragStart(e, project.id); }}
       onDragEnd={onDragEnd}
-      style={{
-        width: "100%", background: colors.bg, border: `1.5px solid ${colors.border}`,
-        borderRadius: 6, padding: "5px 8px", marginBottom: 2, cursor: "grab",
-        opacity: dragging ? 0.4 : 1, boxSizing: "border-box", overflow: "hidden",
-        boxShadow: dragging ? "none" : "0 1px 3px rgba(0,0,0,0.08)",
-      }}
+      style={{ width:"100%", background:c.bg, border:`1.5px solid ${c.border}`, borderRadius:6, padding:"6px 8px", marginBottom:2, cursor:"grab", opacity:dragging?0.4:1, boxSizing:"border-box", overflow:"hidden", boxShadow:A.shadowCard, fontFamily:A.font }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-        <span style={{ fontWeight: 700, fontSize: 11, color: colors.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-          {project.name}
-        </span>
-        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-          <button type="button" onClick={e => { e.stopPropagation(); onEdit(project); }}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 3px", color: colors.text, fontSize: 10, opacity: 0.7 }}>✎</button>
-          <button type="button" onClick={e => { e.stopPropagation(); onDelete(project.id); }}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: "1px 3px", color: "#EF4444", fontSize: 10 }}>×</button>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:4 }}>
+        <span style={{ fontWeight:600, fontSize:12, color:A.textPrimary, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>{project.name}</span>
+        <div style={{ display:"flex", gap:2, flexShrink:0 }}>
+          <button type="button" onClick={e=>{e.stopPropagation();onEdit(project);}} style={{ background:"none",border:"none",cursor:"pointer",padding:"1px 3px",color:A.textSecond,fontSize:11 }}>✎</button>
+          <button type="button" onClick={e=>{e.stopPropagation();onDelete(project.id);}} style={{ background:"none",border:"none",cursor:"pointer",padding:"1px 3px",color:A.statusCrit,fontSize:11 }}>×</button>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 4, marginTop: 3, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ background: colors.badge, color: colors.text, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 600, border: `1px solid ${colors.border}` }}>
-          {project.driver === "Customer Maintain" ? "CM" : "NF"}
-        </span>
-        <span style={{ background: riceColor.bg, color: riceColor.text, borderRadius: 3, padding: "1px 5px", fontSize: 9, fontWeight: 700 }}>R:{project.rice || 0}</span>
-        <span style={{ background: "rgba(255,255,255,0.6)", color: colors.text, borderRadius: 3, padding: "1px 5px", fontSize: 9 }}>
-          {spanCols} sprint{spanCols !== 1 ? "s" : ""}
-        </span>
-        {project.confluenceUrl && (
-          <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()} style={{ color: colors.text, fontSize: 9, textDecoration: "none", opacity: 0.8 }}>🔗</a>
-        )}
+      <div style={{ display:"flex", gap:4, marginTop:4, alignItems:"center", flexWrap:"wrap" }}>
+        <span style={{ background:c.bg, color:c.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600, border:`1px solid ${c.border}` }}>{project.driver==="Customer Maintain"?"CM":"NF"}</span>
+        <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>R:{project.rice||0}</span>
+        <span style={{ background:"#F1F5F9", color:A.textSecond, borderRadius:4, padding:"1px 6px", fontSize:10 }}>{spanCols}sp</span>
+        {project.confluenceUrl && <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ color:A.textLink, fontSize:10, textDecoration:"none" }}>🔗</a>}
       </div>
-      {project.businessValue && spanCols > 1 && (
-        <div style={{ fontSize: 10, color: colors.text, opacity: 0.75, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {project.businessValue}
-        </div>
+      {project.businessValue && spanCols>1 && (
+        <div style={{ fontSize:10, color:A.textSecond, marginTop:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{project.businessValue}</div>
       )}
     </div>
   );
 }
 
-function buildLaneRows(allProjects, laneId, totalSprints) {
-  const placed = Object.values(allProjects).filter(p => p.laneId === laneId && p.sprintIdx != null);
-  placed.sort((a, b) => (a.sprintIdx || 0) - (b.sprintIdx || 0));
+/* ── Row-packing ──────────────────────────────────────────────── */
+function buildRows(allProjects, laneId, total) {
+  const placed = Object.values(allProjects).filter(p => p.laneId===laneId && p.sprintIdx!=null);
+  placed.sort((a,b)=>(a.sprintIdx||0)-(b.sprintIdx||0));
   const rows = [];
   placed.forEach(proj => {
-    const start = proj.sprintIdx || 0;
-    const span = Math.min(proj.sprintCount || 1, totalSprints - start);
-    const end = start + span - 1;
-    let wasPlaced = false;
-    for (const row of rows) {
-      const last = row[row.length - 1];
-      const lastEnd = (last.sprintIdx || 0) + Math.min(last.sprintCount || 1, totalSprints - (last.sprintIdx || 0)) - 1;
-      if (start > lastEnd) { row.push(proj); wasPlaced = true; break; }
-    }
-    if (!wasPlaced) rows.push([proj]);
+    const s=proj.sprintIdx||0, span=Math.min(proj.sprintCount||1,total-s), e=s+span-1;
+    let ok=false;
+    for(const row of rows){ const last=row[row.length-1]; const le=(last.sprintIdx||0)+Math.min(last.sprintCount||1,total-(last.sprintIdx||0))-1; if(s>le){row.push(proj);ok=true;break;} }
+    if(!ok) rows.push([proj]);
   });
   return rows;
 }
 
-function TimelineView({ data, sprintProjects, allProjects, draggingId, dragOverTarget, setDragOverTarget, onDragStart, onDragEnd, onDropCell, onEdit, onDelete, onMarkComplete, onAddToCell }) {
-  const sprints = Array.from({ length: data.sprintCount }, (_, i) => i);
-  const CELL_W = 180;
-  const LANE_LABEL_W = 148;
-
+/* ── Project modal ────────────────────────────────────────────── */
+function ProjectModal({ project, onSave, onClose }) {
+  const [form, setForm] = useState(project || { id:genId(), name:"", businessValue:"", rice:50, sprintCount:1, driver:"New Feature", confluenceUrl:"" });
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const save=e=>{e.preventDefault();e.stopPropagation();if(form.name)onSave(form);};
   return (
-    <div style={{ overflowX: "auto", padding: "12px 16px" }}>
-      <div style={{ minWidth: LANE_LABEL_W + data.sprintCount * CELL_W }}>
-        {/* Sprint headers */}
-        <div style={{ display: "flex" }}>
-          <div style={{ width: LANE_LABEL_W, flexShrink: 0 }} />
-          {sprints.map(i => (
-            <div key={i} style={{ width: CELL_W, flexShrink: 0, padding: "6px 8px", textAlign: "center", borderBottom: "2px solid #2563EB", borderRight: "1px solid #E5E7EB" }}>
-              <div style={{ fontWeight: 700, fontSize: 11, color: "#2563EB" }}>Sprint {i + 1}</div>
-              <div style={{ fontSize: 10, color: "#9CA3AF" }}>
-                {formatDate(data.startDate, data.sprintLengthDays, i)} – {formatDate(data.startDate, data.sprintLengthDays, i + 1)}
+    <div style={{ position:"fixed",inset:0,background:"rgba(20,39,61,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000 }} onClick={e=>e.stopPropagation()}>
+      <div style={{ background:A.canvas,borderRadius:8,padding:28,width:440,maxWidth:"92vw",boxShadow:"0 8px 40px rgba(20,39,61,0.2)",fontFamily:A.font }} onClick={e=>e.stopPropagation()}>
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20 }}>
+          <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:A.textPrimary }}>{project?"Edit initiative":"Add initiative"}</h3>
+          <button type="button" onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:20,color:A.textSecond,lineHeight:1 }}>×</button>
+        </div>
+        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
+          <label style={labelSt}>Initiative title *<input value={form.name} onChange={e=>set("name",e.target.value)} style={inputSt} placeholder="Initiative title" /></label>
+          <label style={labelSt}>Initiative description<textarea value={form.businessValue} onChange={e=>set("businessValue",e.target.value)} style={{...inputSt,height:64,resize:"vertical"}} placeholder="Why this matters..." /></label>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+            <label style={labelSt}>RICE score<input type="number" value={form.rice} onChange={e=>set("rice",+e.target.value)} style={inputSt} min={0} max={200} /></label>
+            <label style={labelSt}>Sprint count<input type="number" value={form.sprintCount} onChange={e=>set("sprintCount",+e.target.value)} style={inputSt} min={1} max={20} /></label>
+          </div>
+          <label style={labelSt}>Driver<select value={form.driver} onChange={e=>set("driver",e.target.value)} style={inputSt}><option>New Feature</option><option>Customer Maintain</option></select></label>
+          <label style={labelSt}>Confluence URL<input value={form.confluenceUrl} onChange={e=>set("confluenceUrl",e.target.value)} style={inputSt} placeholder="https://..." /></label>
+        </div>
+        <div style={{ display:"flex",gap:10,marginTop:24,justifyContent:"flex-end" }}>
+          <button type="button" onClick={onClose} style={btnS}>Cancel</button>
+          <button type="button" onClick={save} style={{...btnP,opacity:form.name?1:0.5}} disabled={!form.name}>{project?"Save changes":"Add initiative"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Settings modal ───────────────────────────────────────────── */
+function SettingsModal({ data, onSave, onClose }) {
+  const [sprintLen,setSprintLen]=useState(data.sprintLengthDays);
+  const [sprintCount,setSprintCount]=useState(data.sprintCount);
+  const [startDate,setStartDate]=useState(data.startDate);
+  const [lanes,setLanes]=useState(data.swimlanes.map(l=>({...l})));
+  const [newLane,setNewLane]=useState("");
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(20,39,61,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000 }}>
+      <div style={{ background:A.canvas,borderRadius:8,padding:28,width:460,maxWidth:"92vw",boxShadow:"0 8px 40px rgba(20,39,61,0.2)",fontFamily:A.font }}>
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20 }}>
+          <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:A.textPrimary }}>Roadmap settings</h3>
+          <button type="button" onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:20,color:A.textSecond }}>×</button>
+        </div>
+        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+            <label style={labelSt}>Sprint length (days)<input type="number" value={sprintLen} onChange={e=>setSprintLen(+e.target.value)} style={inputSt} min={1} max={60}/></label>
+            <label style={labelSt}>Number of sprints<input type="number" value={sprintCount} onChange={e=>setSprintCount(+e.target.value)} style={inputSt} min={1} max={24}/></label>
+          </div>
+          <label style={labelSt}>Start date<input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} style={inputSt}/></label>
+          <div>
+            <div style={{ fontSize:13,color:A.textPrimary,fontWeight:600,marginBottom:8 }}>Swimlanes</div>
+            {lanes.map((lane,i)=>(
+              <div key={lane.id} style={{ display:"flex",gap:8,marginBottom:8,alignItems:"center" }}>
+                <input value={lane.name} onChange={e=>{const l=[...lanes];l[i].name=e.target.value;setLanes(l);}} style={{...inputSt,flex:1}}/>
+                <button type="button" onClick={()=>setLanes(lanes.filter((_,j)=>j!==i))} style={{...btnG,padding:"7px 12px",color:A.statusCrit}}>×</button>
               </div>
+            ))}
+            <div style={{ display:"flex",gap:8 }}>
+              <input value={newLane} onChange={e=>setNewLane(e.target.value)} placeholder="New lane name..." style={{...inputSt,flex:1}}/>
+              <button type="button" onClick={()=>{if(newLane.trim()){setLanes([...lanes,{id:genId(),name:newLane.trim()}]);setNewLane("");}}} style={btnS}>Add</button>
+            </div>
+          </div>
+        </div>
+        <div style={{ display:"flex",gap:10,marginTop:24,justifyContent:"flex-end" }}>
+          <button type="button" onClick={onClose} style={btnS}>Cancel</button>
+          <button type="button" onClick={()=>onSave({sprintLengthDays:sprintLen,sprintCount,startDate,swimlanes:lanes})} style={btnP}>Save settings</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Timeline view ────────────────────────────────────────────── */
+function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOverTarget, onDragStart, onDragEnd, onDropCell, onEdit, onDelete, onAddToCell }) {
+  const sprints=Array.from({length:data.sprintCount},(_,i)=>i);
+  const CW=180, LW=160;
+  return (
+    <div style={{ overflowX:"auto", padding:"0 24px 24px" }}>
+      <div style={{ minWidth:LW+data.sprintCount*CW }}>
+        {/* Header */}
+        <div style={{ display:"flex", position:"sticky", top:0, zIndex:10, background:A.canvas }}>
+          <div style={{ width:LW, flexShrink:0 }}/>
+          {sprints.map(i=>(
+            <div key={i} style={{ width:CW, flexShrink:0, padding:"10px 8px", textAlign:"center", borderBottom:`2px solid ${A.interactive}`, borderRight:`1px solid ${A.borderCard}`, background:A.canvas }}>
+              <div style={{ fontWeight:600, fontSize:12, color:A.interactive, fontFamily:A.font }}>Sprint {i+1}</div>
+              <div style={{ fontSize:11, color:A.textSecond, marginTop:2, fontFamily:A.font }}>{formatDate(data.startDate,data.sprintLengthDays,i)} – {formatDate(data.startDate,data.sprintLengthDays,i+1)}</div>
             </div>
           ))}
         </div>
-
-        {/* Swimlanes */}
-        {data.swimlanes.map((lane, laneIdx) => {
-          const rows = buildLaneRows(allProjects, lane.id, data.sprintCount);
-          const sprintCapacity = {};
-          sprints.forEach(si => {
-            sprintCapacity[si] = Object.values(allProjects).filter(p => p.laneId === lane.id && p.sprintIdx === si).length;
-          });
-
+        {/* Lanes */}
+        {data.swimlanes.map((lane,li)=>{
+          const rows=buildRows(allProjects,lane.id,data.sprintCount);
+          const cap={};
+          sprints.forEach(si=>{ cap[si]=Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx===si).length; });
+          const active=Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx!=null).length;
           return (
-            <div key={lane.id} style={{ display: "flex", borderBottom: "1px solid #E5E7EB", background: laneIdx % 2 === 0 ? "#fff" : "#F9FAFB" }}>
-              {/* Lane label */}
-              <div style={{ width: LANE_LABEL_W, flexShrink: 0, padding: "10px 8px", display: "flex", flexDirection: "column", justifyContent: "flex-start", borderRight: "2px solid #E5E7EB" }}>
-                <span style={{ fontWeight: 700, fontSize: 11, color: "#374151", lineHeight: 1.4 }}>{lane.name}</span>
-                <span style={{ fontSize: 9, color: "#9CA3AF", marginTop: 2 }}>
-                  {Object.values(allProjects).filter(p => p.laneId === lane.id && p.sprintIdx != null).length} active
-                </span>
+            <div key={lane.id} style={{ display:"flex", borderBottom:`1px solid ${A.borderCard}`, background:li%2===0?A.canvas:"#F8FAFC" }}>
+              <div style={{ width:LW, flexShrink:0, padding:"14px 12px", borderRight:`2px solid ${A.interactive}`, display:"flex", flexDirection:"column" }}>
+                <span style={{ fontWeight:600, fontSize:13, color:A.textPrimary, fontFamily:A.font, lineHeight:1.3 }}>{lane.name}</span>
+                <span style={{ fontSize:11, color:A.textSecond, marginTop:3, fontFamily:A.font }}>{active} active</span>
               </div>
-
-              {/* Gantt area */}
-              <div style={{ flex: 1, position: "relative", minHeight: 60 }}>
-                {/* Invisible drop-target grid */}
-                <div style={{ display: "flex", position: "absolute", inset: 0, zIndex: 0 }}>
-                  {sprints.map(sprintIdx => {
-                    const isDragOver = dragOverTarget?.laneId === lane.id && dragOverTarget?.sprintIdx === sprintIdx;
-                    return (
-                      <div key={sprintIdx}
-                        onDragOver={e => { e.preventDefault(); setDragOverTarget({ laneId: lane.id, sprintIdx }); }}
-                        onDragLeave={() => setDragOverTarget(null)}
-                        onDrop={e => onDropCell(e, lane.id, sprintIdx)}
-                        style={{ width: CELL_W, flexShrink: 0, borderRight: "1px solid #F3F4F6", height: "100%", background: isDragOver ? "rgba(37,99,235,0.07)" : "transparent", transition: "background 0.15s" }}
-                      />
-                    );
+              <div style={{ flex:1, position:"relative", minHeight:64 }}>
+                {/* Drop grid */}
+                <div style={{ display:"flex", position:"absolute", inset:0, zIndex:0 }}>
+                  {sprints.map(si=>{
+                    const over=dragOverTarget?.laneId===lane.id&&dragOverTarget?.sprintIdx===si;
+                    return <div key={si} onDragOver={e=>{e.preventDefault();setDragOverTarget({laneId:lane.id,sprintIdx:si});}} onDragLeave={()=>setDragOverTarget(null)} onDrop={e=>onDropCell(e,lane.id,si)} style={{ width:CW, flexShrink:0, height:"100%", borderRight:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.08)":"transparent", transition:"background 0.15s" }}/>;
                   })}
                 </div>
-
-                {/* Gantt bars */}
-                <div style={{ position: "relative", zIndex: 1, paddingTop: 6, paddingBottom: 2 }}>
-                  {rows.length === 0 && (
-                    <div style={{ height: 24 }} />
-                  )}
-                  {rows.map((row, rowIdx) => {
-                    const items = [];
-                    let cursor = 0;
-                    row.forEach(proj => {
-                      const startCol = proj.sprintIdx || 0;
-                      const spanCols = Math.min(proj.sprintCount || 1, data.sprintCount - startCol);
-                      if (startCol > cursor) {
-                        items.push(<div key={`sp-${proj.id}`} style={{ width: (startCol - cursor) * CELL_W, flexShrink: 0 }} />);
-                      }
-                      items.push(
-                        <div key={proj.id} style={{ width: spanCols * CELL_W, flexShrink: 0, paddingLeft: 4, paddingRight: 4, boxSizing: "border-box" }}>
-                          <GanttBar project={proj} colW={CELL_W} sprintCount={data.sprintCount}
-                            onEdit={onEdit} onDelete={onDelete}
-                            dragging={draggingId === proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd} />
-                        </div>
-                      );
-                      cursor = startCol + spanCols;
+                {/* Bars */}
+                <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4 }}>
+                  {rows.length===0&&<div style={{height:20}}/>}
+                  {rows.map((row,ri)=>{
+                    const items=[]; let cursor=0;
+                    row.forEach(proj=>{
+                      const s=proj.sprintIdx||0, span=Math.min(proj.sprintCount||1,data.sprintCount-s);
+                      if(s>cursor) items.push(<div key={`sp-${proj.id}`} style={{width:(s-cursor)*CW,flexShrink:0}}/>);
+                      items.push(<div key={proj.id} style={{width:span*CW,flexShrink:0,paddingLeft:4,paddingRight:4,boxSizing:"border-box"}}><GanttBar project={proj} sprintCount={data.sprintCount} onEdit={onEdit} onDelete={onDelete} dragging={draggingId===proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd}/></div>);
+                      cursor=s+span;
                     });
-                    return <div key={rowIdx} style={{ display: "flex", alignItems: "flex-start", marginBottom: 2 }}>{items}</div>;
+                    return <div key={ri} style={{display:"flex",alignItems:"flex-start",marginBottom:2}}>{items}</div>;
                   })}
-
-                  {/* Capacity + add buttons row */}
-                  <div style={{ display: "flex", borderTop: "1px dashed #E5E7EB", marginTop: 4 }}>
-                    {sprints.map(si => {
-                      const count = sprintCapacity[si] || 0;
-                      const isFull = count >= 6;
+                  {/* Capacity row */}
+                  <div style={{ display:"flex", borderTop:`1px dashed ${A.borderCard}`, marginTop:4 }}>
+                    {sprints.map(si=>{
+                      const count=cap[si]||0, full=count>=6;
                       return (
-                        <div key={si} style={{ width: CELL_W, flexShrink: 0, padding: "3px 4px" }}>
-                          <CapacityBar used={count} max={6} />
-                          {!isFull
-                            ? <button type="button" onClick={() => onAddToCell(lane.id, si)}
-                                style={{ marginTop: 3, width: "100%", background: "none", border: "1px dashed #D1D5DB", borderRadius: 4, color: "#9CA3AF", fontSize: 9, padding: "2px 0", cursor: "pointer" }}>+ add</button>
-                            : <div style={{ fontSize: 9, color: "#EF4444", textAlign: "center", marginTop: 3 }}>Full</div>
+                        <div key={si} style={{width:CW,flexShrink:0,padding:"3px 4px"}}>
+                          <CapBar used={count} max={6}/>
+                          {!full
+                            ?<button type="button" onClick={()=>onAddToCell(lane.id,si)} style={{marginTop:3,width:"100%",background:"none",border:`1px dashed ${A.borderCard}`,borderRadius:4,color:A.textSecond,fontSize:10,padding:"2px 0",cursor:"pointer",fontFamily:A.font}}>+ add</button>
+                            :<div style={{fontSize:9,color:A.statusCrit,textAlign:"center",marginTop:3,fontFamily:A.font}}>Full</div>
                           }
                         </div>
                       );
@@ -735,53 +269,48 @@ function TimelineView({ data, sprintProjects, allProjects, draggingId, dragOverT
   );
 }
 
-function ListView({ data, sprintProjects, allProjects, onEdit, onDelete, onMarkComplete }) {
-  const sprints = Array.from({ length: data.sprintCount }, (_, i) => i);
-
+/* ── List view ────────────────────────────────────────────────── */
+function ListView({ data, allProjects, onEdit, onDelete, onMarkComplete }) {
+  const sprints=Array.from({length:data.sprintCount},(_,i)=>i);
   return (
-    <div style={{ padding: "12px 16px" }}>
-      {sprints.map(sprintIdx => {
-        const hasAny = data.swimlanes.some(lane => (sprintProjects[lane.id]?.[sprintIdx] || []).length > 0);
-        if (!hasAny) return null;
+    <div style={{ padding:"0 24px 24px", fontFamily:A.font }}>
+      {sprints.map(si=>{
+        const lp=data.swimlanes.map(lane=>({lane,projects:Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx===si)})).filter(({projects})=>projects.length>0);
+        if(!lp.length) return null;
         return (
-          <div key={sprintIdx} style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#2563EB", marginBottom: 8, paddingBottom: 4, borderBottom: "2px solid #DBEAFE" }}>
-              Sprint {sprintIdx + 1} · {formatDate(data.startDate, data.sprintLengthDays, sprintIdx)} – {formatDate(data.startDate, data.sprintLengthDays, sprintIdx + 1)}
+          <div key={si} style={{marginBottom:24}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,paddingBottom:8,borderBottom:`2px solid ${A.interactive}`}}>
+              <span style={{fontWeight:700,fontSize:14,color:A.interactive}}>Sprint {si+1}</span>
+              <span style={{fontSize:12,color:A.textSecond}}>{formatDate(data.startDate,data.sprintLengthDays,si)} – {formatDate(data.startDate,data.sprintLengthDays,si+1)}</span>
             </div>
-            {data.swimlanes.map(lane => {
-              const pids = sprintProjects[lane.id]?.[sprintIdx] || [];
-              if (pids.length === 0) return null;
-              return (
-                <div key={lane.id} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{lane.name}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {pids.map(pid => {
-                      const p = allProjects[pid];
-                      if (!p) return null;
-                      const driver = DRIVER_COLORS[p.driver] || DRIVER_COLORS["New Feature"];
-                      const riceColor = RICE_COLOR(p.rice || 0);
-                      return (
-                        <div key={pid} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 14px", minWidth: 200, maxWidth: 280 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: "#111827", marginBottom: 4 }}>{p.name}</div>
-                          {p.businessValue && <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>{p.businessValue}</div>}
-                          <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ background: driver.bg, color: driver.text, border: `1px solid ${driver.border}`, borderRadius: 4, padding: "2px 7px", fontSize: 10, fontWeight: 600 }}>{p.driver}</span>
-                            <span style={{ background: riceColor.bg, color: riceColor.text, borderRadius: 4, padding: "2px 7px", fontSize: 10, fontWeight: 700 }}>RICE: {p.rice}</span>
-                            <span style={{ background: "#F3F4F6", color: "#374151", borderRadius: 4, padding: "2px 7px", fontSize: 10 }}>{p.sprintCount} sprint{p.sprintCount !== 1 ? "s" : ""}</span>
-                            {p.confluenceUrl && <a href={p.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: "#2563EB", fontSize: 10, textDecoration: "none" }}>📄 Confluence</a>}
-                          </div>
-                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                            <button onClick={() => onEdit(p)} style={{ ...btnSecondary, padding: "3px 8px", fontSize: 10 }}>Edit</button>
-                            <button onClick={() => onMarkComplete(pid)} style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#15803D", borderRadius: 5, padding: "3px 8px", fontSize: 10, cursor: "pointer" }}>✓ Done</button>
-                            <button onClick={() => onDelete(pid)} style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626", borderRadius: 5, padding: "3px 8px", fontSize: 10, cursor: "pointer" }}>Delete</button>
-                          </div>
+            {lp.map(({lane,projects})=>(
+              <div key={lane.id} style={{marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:600,color:A.textSecond,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>{lane.name}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
+                  {projects.map(p=>{
+                    const c=DRIVER_COLORS[p.driver]||DRIVER_COLORS["New Feature"];
+                    const rc=RICE_COLOR(p.rice||0);
+                    return (
+                      <div key={p.id} style={{background:A.card,border:`1px solid ${A.borderCard}`,borderRadius:8,padding:"14px 16px",minWidth:220,maxWidth:300,boxShadow:A.shadowCard}}>
+                        <div style={{fontWeight:600,fontSize:14,color:A.textPrimary,marginBottom:4}}>{p.name}</div>
+                        {p.businessValue&&<div style={{fontSize:12,color:A.textSecond,marginBottom:10,lineHeight:1.4}}>{p.businessValue}</div>}
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
+                          <span style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>{p.driver}</span>
+                          <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>RICE: {p.rice}</span>
+                          <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"2px 8px",fontSize:11}}>{p.sprintCount} sprint{p.sprintCount!==1?"s":""}</span>
+                          {p.confluenceUrl&&<a href={p.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:A.textLink,fontSize:11,textDecoration:"none",fontWeight:600}}>📄 Confluence</a>}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <button type="button" onClick={()=>onEdit(p)} style={{...btnS,padding:"4px 10px",fontSize:11}}>Edit</button>
+                          <button type="button" onClick={()=>onMarkComplete(p.id)} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",color:"#15803D",borderRadius:6,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✓ Done</button>
+                          <button type="button" onClick={()=>onDelete(p.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>Delete</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         );
       })}
@@ -789,61 +318,265 @@ function ListView({ data, sprintProjects, allProjects, onEdit, onDelete, onMarkC
   );
 }
 
+/* ── Backlog panel ────────────────────────────────────────────── */
 function BacklogPanel({ data, allProjects, draggingId, backlogDragIdx, onDragStart, onDragEnd, onDrop, onBacklogDragStart, onBacklogDrop, onEdit, onDelete, onMarkComplete, onAdd }) {
-  const backlog = data.backlog || [];
-
+  const backlog=data.backlog||[];
   return (
-    <div
-      style={{ width: 220, flexShrink: 0, background: "#fff", borderLeft: "1px solid #E5E7EB", minHeight: "60vh", display: "flex", flexDirection: "column" }}
-      onDragOver={e => e.preventDefault()}
-      onDrop={onDrop}
-    >
-      <div style={{ padding: "12px 12px 8px", borderBottom: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontWeight: 700, fontSize: 12, color: "#374151" }}>Backlog ({backlog.length})</span>
-        <button onClick={onAdd} style={{ ...btnPrimary, padding: "4px 10px", fontSize: 11 }}>+ Add</button>
+    <div style={{width:232,flexShrink:0,background:A.canvas,borderLeft:`1px solid ${A.borderCard}`,display:"flex",flexDirection:"column",fontFamily:A.font}} onDragOver={e=>e.preventDefault()} onDrop={onDrop}>
+      <div style={{padding:"14px 14px 10px",borderBottom:`1px solid ${A.borderCard}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:"#F8FAFC"}}>
+        <span style={{fontWeight:600,fontSize:13,color:A.textPrimary}}>Backlog ({backlog.length})</span>
+        <button type="button" onClick={onAdd} style={{...btnP,padding:"5px 12px",fontSize:12}}>+ Add</button>
       </div>
-      <div style={{ padding: 8, flex: 1, overflowY: "auto" }}>
-        {backlog.length === 0 && (
-          <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center", padding: "20px 8px" }}>
-            Drop projects here or click + Add
-          </div>
-        )}
-        {backlog.map((pid, idx) => {
-          const p = allProjects[pid];
-          if (!p) return null;
+      <div style={{padding:10,flex:1,overflowY:"auto"}}>
+        {backlog.length===0&&<div style={{textAlign:"center",padding:"24px 10px",color:A.textSecond,fontSize:12}}>Drop initiatives here or click + Add</div>}
+        {backlog.map((pid,idx)=>{
+          const p=allProjects[pid]; if(!p) return null;
+          const c=DRIVER_COLORS[p.driver]||DRIVER_COLORS["New Feature"];
           return (
-            <div
-              key={pid}
-              draggable
-              onDragStart={e => { onBacklogDragStart(e, idx); onDragStart(e, pid); }}
-              onDragEnd={onDragEnd}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => onBacklogDrop(e, idx)}
-              style={{ opacity: draggingId === pid ? 0.4 : 1, borderTop: backlogDragIdx !== null && backlogDragIdx !== idx ? "1px dashed #BFDBFE" : undefined }}
-            >
-              <div style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 7, padding: "6px 8px", marginBottom: 4, cursor: "grab" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 4 }}>
-                  <span style={{ fontWeight: 600, fontSize: 11, color: "#111827", lineHeight: 1.3, flex: 1 }}>
-                    <span style={{ color: "#9CA3AF", marginRight: 4 }}>#{idx + 1}</span>
-                    {p.name}
-                  </span>
+            <div key={pid} draggable onDragStart={e=>{onBacklogDragStart(e,idx);onDragStart(e,pid);}} onDragEnd={onDragEnd} onDragOver={e=>e.preventDefault()} onDrop={e=>onBacklogDrop(e,idx)}
+              style={{opacity:draggingId===pid?0.4:1,borderTop:backlogDragIdx!==null&&backlogDragIdx!==idx?`2px dashed ${A.interactive}`:undefined}}>
+              <div style={{background:"#F8FAFC",border:`1px solid ${A.borderCard}`,borderRadius:6,padding:"8px 10px",marginBottom:6,cursor:"grab",boxShadow:A.shadowCard}}>
+                <div style={{fontWeight:600,fontSize:12,color:A.textPrimary,lineHeight:1.3,marginBottom:4}}>
+                  <span style={{color:A.textSecond,marginRight:4,fontSize:11}}>#{idx+1}</span>{p.name}
                 </div>
-                <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-                  <span style={{ background: RICE_COLOR(p.rice || 0).bg, color: RICE_COLOR(p.rice || 0).text, borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 700 }}>R:{p.rice || 0}</span>
-                  <span style={{ background: DRIVER_COLORS[p.driver]?.bg || "#F0FDF4", color: DRIVER_COLORS[p.driver]?.text || "#15803D", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 600 }}>
-                    {p.driver === "Customer Maintain" ? "CM" : "NF"}
-                  </span>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+                  <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>R:{p.rice||0}</span>
+                  <span style={{background:c.bg,color:c.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600,border:`1px solid ${c.border}`}}>{p.driver==="Customer Maintain"?"CM":"NF"}</span>
+                  <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"1px 6px",fontSize:10}}>{p.sprintCount||1}sp</span>
                 </div>
-                <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
-                  <button onClick={() => onEdit(p)} style={{ flex: 1, ...btnSecondary, padding: "2px 0", fontSize: 9, textAlign: "center" }}>Edit</button>
-                  <button onClick={() => onMarkComplete(pid)} style={{ flex: 1, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#15803D", borderRadius: 4, padding: "2px 0", fontSize: 9, cursor: "pointer" }}>Done</button>
-                  <button onClick={() => onDelete(pid)} style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626", borderRadius: 4, padding: "2px 5px", fontSize: 9, cursor: "pointer" }}>×</button>
+                <div style={{display:"flex",gap:5}}>
+                  <button type="button" onClick={()=>onEdit(p)} style={{flex:1,...btnS,padding:"3px 0",fontSize:10,textAlign:"center"}}>Edit</button>
+                  <button type="button" onClick={()=>onMarkComplete(pid)} style={{flex:1,background:"#F0FDF4",border:"1px solid #BBF7D0",color:"#15803D",borderRadius:6,padding:"3px 0",fontSize:10,cursor:"pointer"}}>Done</button>
+                  <button type="button" onClick={()=>onDelete(pid)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>×</button>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ── Root App ─────────────────────────────────────────────────── */
+export default function App() {
+  const [data,setData]=useState(null);
+  const [view,setView]=useState("timeline");
+  const [showBacklog,setShowBacklog]=useState(true);
+  const [editProject,setEditProject]=useState(null);
+  const [addingTo,setAddingTo]=useState(null);
+  const [showSettings,setShowSettings]=useState(false);
+  const [draggingId,setDraggingId]=useState(null);
+  const [dragOverTarget,setDragOverTarget]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const [backlogDragIdx,setBacklogDragIdx]=useState(null);
+  const [completedOpen,setCompletedOpen]=useState(false);
+
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const {data:rows,error:err}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
+        if(err&&err.code!=="PGRST116") throw err;
+        setData(rows?.value||defaultData());
+      } catch(e) {
+        console.error(e);
+        setData(defaultData());
+        setError("Could not connect to Supabase — using local state.");
+      }
+      setLoading(false);
+    })();
+  },[]);
+
+  const updateData=useCallback(updater=>{
+    setData(prev=>{
+      const next=updater(prev);
+      (async()=>{ try{ await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"}); }catch(e){console.error(e);} })();
+      return next;
+    });
+  },[]);
+
+  const handleSaveNew=proj=>{
+    updateData(d=>{
+      if(addingTo?.type==="sprint") return {...d,projects:{...(d.projects||{}),[proj.id]:{...proj,laneId:addingTo.laneId,sprintIdx:addingTo.sprintIdx}}};
+      return {...d,projects:{...(d.projects||{}),[proj.id]:proj},backlog:[...(d.backlog||[]),proj.id]};
+    });
+    setAddingTo(null);
+  };
+
+  const handleUpdateProject=proj=>{
+    updateData(d=>({...d,projects:{...d.projects,[proj.id]:{...d.projects[proj.id],...proj}}}));
+    setEditProject(null);
+  };
+
+  const handleDelete=pid=>{
+    updateData(d=>{ const p={...d.projects}; delete p[pid]; return {...d,projects:p,backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)}; });
+  };
+
+  const handleComplete=pid=>{
+    updateData(d=>{
+      const proj=d.projects[pid]; if(!proj) return d;
+      return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},completed:[...(d.completed||[]),pid],backlog:(d.backlog||[]).filter(id=>id!==pid)};
+    });
+  };
+
+  const handleDropCell=(e,laneId,sprintIdx)=>{
+    e.preventDefault();
+    const pid=e.dataTransfer.getData("pid"); if(!pid) return;
+    updateData(d=>{
+      const count=Object.values(d.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
+      if(count>=6) return d;
+      const proj=d.projects[pid]; if(!proj) return d;
+      return {...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
+    });
+    setDragOverTarget(null); setDraggingId(null);
+  };
+
+  const handleDropBacklog=e=>{
+    e.preventDefault();
+    const pid=e.dataTransfer.getData("pid"); if(!pid) return;
+    updateData(d=>{ const proj=d.projects[pid]; if(!proj) return d; const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid]; return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl}; });
+    setDraggingId(null);
+  };
+
+  const handleBacklogDragStart=(e,idx)=>{ setBacklogDragIdx(idx); e.dataTransfer.setData("backlogIdx",idx); };
+  const handleBacklogDrop=(e,ti)=>{ e.preventDefault(); const fi=parseInt(e.dataTransfer.getData("backlogIdx")); if(isNaN(fi)||fi===ti) return; updateData(d=>{ const bl=[...(d.backlog||[])]; const [r]=bl.splice(fi,1); bl.splice(ti,0,r); return {...d,backlog:bl}; }); setBacklogDragIdx(null); };
+
+  const dragStart=(e,pid)=>{ e.dataTransfer.setData("pid",pid); setDraggingId(pid); };
+  const dragEnd=()=>{ setDraggingId(null); setDragOverTarget(null); };
+
+  if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:A.font,color:A.textSecond}}>Loading roadmap...</div>;
+  if(!data) return null;
+
+  const allProjects=data.projects||{};
+
+  return (
+    <div style={{fontFamily:A.font,background:A.canvas,minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+      {/* Global header */}
+      <div style={{background:A.sidebar,height:48,display:"flex",alignItems:"center",padding:"0 20px",gap:12,flexShrink:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,6px)",gap:3}}>
+          {Array(9).fill(0).map((_,i)=><div key={i} style={{width:6,height:6,background:A.textOnDark,borderRadius:1,opacity:0.6}}/>)}
+        </div>
+        <span style={{color:A.textOnDark,fontWeight:700,fontSize:15,letterSpacing:"-0.2px"}}>Aline</span>
+        <div style={{flex:1}}/>
+        <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.1)",borderRadius:20,padding:"4px 14px",cursor:"pointer"}}>
+          <span style={{fontSize:12,color:A.textOnDark}}>🏠 Product Roadmap</span>
+          <span style={{fontSize:10,color:A.textOnDark,opacity:0.6}}>▼</span>
+        </div>
+      </div>
+
+      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+        {/* Sidebar */}
+        <div style={{width:220,background:A.sidebar,flexShrink:0,display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"12px 10px 8px"}}>
+            <div style={{background:"rgba(255,255,255,0.08)",borderRadius:6,padding:"8px 10px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+              <span style={{fontSize:12}}>⊞</span>
+              <span style={{fontSize:12,color:A.textOnDark}}>All Communities</span>
+              <span style={{fontSize:10,color:A.textOnDark,opacity:0.5,marginLeft:"auto"}}>▼</span>
+            </div>
+          </div>
+
+          <nav style={{padding:"6px 0",flex:1}}>
+            {[{label:"Roadmap",icon:"◈",active:true},{label:"Backlog",icon:"☰",active:false},{label:"Completed",icon:"✓",active:false}].map(item=>(
+              <div key={item.label}
+                onClick={()=>{ if(item.label==="Backlog") setShowBacklog(b=>!b); if(item.label==="Completed") setCompletedOpen(o=>!o); }}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",background:item.active?A.interactive:"transparent",borderRadius:item.active?6:0,margin:item.active?"2px 8px":"2px 0"}}>
+                <span style={{fontSize:14,color:A.textOnDark,opacity:item.active?1:0.7}}>{item.icon}</span>
+                <span style={{fontSize:14,fontWeight:item.active?600:400,color:A.textOnDark,opacity:item.active?1:0.85}}>{item.label}</span>
+              </div>
+            ))}
+
+            <div style={{margin:"14px 14px 6px",fontSize:11,color:A.textOnDark,opacity:0.45,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.07em"}}>Swimlanes</div>
+            {data.swimlanes.map(lane=>(
+              <div key={lane.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px"}}>
+                <div style={{width:6,height:6,background:A.interactive,borderRadius:"50%",flexShrink:0}}/>
+                <span style={{fontSize:12,color:A.textOnDark,opacity:0.8}}>{lane.name}</span>
+              </div>
+            ))}
+          </nav>
+
+          <div style={{padding:"10px 8px",borderTop:"1px solid rgba(255,255,255,0.1)"}}>
+            <button type="button" onClick={()=>setShowSettings(true)}
+              style={{width:"100%",background:"rgba(255,255,255,0.07)",border:"none",borderRadius:6,padding:"8px 12px",color:A.textOnDark,fontSize:12,cursor:"pointer",textAlign:"left",fontFamily:A.font,display:"flex",alignItems:"center",gap:8}}>
+              ⚙ Settings
+            </button>
+          </div>
+        </div>
+
+        {/* Main */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          {/* Page header */}
+          <div style={{background:A.canvas,borderBottom:`1px solid ${A.borderCard}`,padding:"16px 24px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",flexShrink:0}}>
+            <div style={{flex:1}}>
+              <h1 style={{margin:0,fontSize:22,fontWeight:700,color:A.textPrimary,lineHeight:1.1,fontFamily:A.font}}>Product Roadmap</h1>
+              <div style={{fontSize:12,color:A.textSecond,marginTop:3,fontFamily:A.font}}>{data.sprintLengthDays}-day sprints · {data.sprintCount} sprints · starts {data.startDate}</div>
+            </div>
+            {error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"5px 12px",fontSize:11}}>{error}</div>}
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{display:"flex",border:`1px solid ${A.borderCard}`,borderRadius:6,overflow:"hidden"}}>
+                {["timeline","list"].map(v=>(
+                  <button key={v} type="button" onClick={()=>setView(v)}
+                    style={{padding:"6px 16px",background:view===v?A.interactive:A.canvas,color:view===v?"#fff":A.textPrimary,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:A.font}}>
+                    {v.charAt(0).toUpperCase()+v.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={()=>setShowBacklog(b=>!b)}
+                style={{...btnG,fontSize:12,fontWeight:600,background:showBacklog?"#EBF4FB":A.canvas,color:showBacklog?A.interactive:A.textPrimary,borderColor:showBacklog?A.interactive:A.borderCard}}>
+                Backlog ({(data.backlog||[]).length})
+              </button>
+              <button type="button" onClick={()=>setAddingTo({type:"backlog"})} style={{...btnP,fontSize:12}}>+ Initiative</button>
+            </div>
+          </div>
+
+          {/* Scrollable body */}
+          <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
+            <div style={{flex:1}}>
+              {view==="timeline"
+                ?<TimelineView data={data} allProjects={allProjects} draggingId={draggingId} dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDragStart={dragStart} onDragEnd={dragEnd} onDropCell={handleDropCell} onEdit={setEditProject} onDelete={handleDelete} onAddToCell={(laneId,si)=>setAddingTo({type:"sprint",laneId,sprintIdx:si})}/>
+                :<ListView data={data} allProjects={allProjects} onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}/>
+              }
+            </div>
+
+            {/* Completed */}
+            <div style={{margin:"0 24px 20px",borderTop:`1px solid ${A.borderCard}`,paddingTop:14}}>
+              <button type="button" onClick={()=>setCompletedOpen(o=>!o)}
+                style={{background:"none",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,color:A.textPrimary,display:"flex",alignItems:"center",gap:8,fontFamily:A.font,padding:0}}>
+                <span style={{fontSize:10,color:A.textSecond}}>{completedOpen?"▼":"▶"}</span>
+                Completed ({(data.completed||[]).length})
+              </button>
+              {completedOpen&&(
+                <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
+                  {(data.completed||[]).map(pid=>{
+                    const p=allProjects[pid]; if(!p) return null;
+                    return (
+                      <div key={pid} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:6,padding:"6px 12px",fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontWeight:600,color:"#15803D"}}>✓ {p.name}</span>
+                        <button type="button" onClick={()=>handleDelete(pid)} style={{background:"none",border:"none",color:A.statusCrit,cursor:"pointer",fontSize:12}}>×</button>
+                      </div>
+                    );
+                  })}
+                  {!(data.completed||[]).length&&<div style={{fontSize:12,color:A.textSecond}}>No completed initiatives yet.</div>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Backlog panel */}
+        {showBacklog&&(
+          <BacklogPanel data={data} allProjects={allProjects} draggingId={draggingId} backlogDragIdx={backlogDragIdx}
+            onDragStart={dragStart} onDragEnd={dragEnd} onDrop={handleDropBacklog}
+            onBacklogDragStart={handleBacklogDragStart} onBacklogDrop={handleBacklogDrop}
+            onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}
+            onAdd={()=>setAddingTo({type:"backlog"})}/>
+        )}
+      </div>
+
+      {(addingTo||editProject)&&(
+        <ProjectModal project={editProject||null} onSave={editProject?handleUpdateProject:handleSaveNew} onClose={()=>{setEditProject(null);setAddingTo(null);}}/>
+      )}
+      {showSettings&&<SettingsModal data={data} onSave={s=>{updateData(d=>({...d,...s}));setShowSettings(false);}} onClose={()=>setShowSettings(false)}/>}
     </div>
   );
 }
