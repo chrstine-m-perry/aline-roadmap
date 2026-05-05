@@ -225,27 +225,42 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                 <span style={{ fontWeight:600, fontSize:13, color:A.textPrimary, fontFamily:A.font, lineHeight:1.3 }}>{lane.name}</span>
                 <span style={{ fontSize:11, color:A.textSecond, marginTop:3, fontFamily:A.font }}>{active} active</span>
               </div>
-              <div style={{ flex:1, position:"relative", minHeight:64 }}>
-                {/* Single unified drag-drop surface — sits above everything */}
-                <div style={{ display:"flex", position:"absolute", inset:0, zIndex:10 }}>
+              <div style={{ flex:1, position:"relative", minHeight:64 }}
+                onDragOver={e=>{
+                  e.preventDefault();
+                  const rect=e.currentTarget.getBoundingClientRect();
+                  const x=e.clientX-rect.left;
+                  const si=Math.min(Math.floor(x/CW),data.sprintCount-1);
+                  setDragOverTarget({laneId:lane.id,sprintIdx:si});
+                }}
+                onDragLeave={e=>{
+                  if(!e.currentTarget.contains(e.relatedTarget)) setDragOverTarget(null);
+                }}
+                onDrop={e=>{
+                  e.preventDefault();
+                  const rect=e.currentTarget.getBoundingClientRect();
+                  const x=e.clientX-rect.left;
+                  const si=Math.min(Math.floor(x/CW),data.sprintCount-1);
+                  onDropCell(e,lane.id,si);
+                  setDragOverTarget(null);
+                }}
+              >
+                {/* Sprint column highlight overlay — visual only, no pointer events */}
+                <div style={{ display:"flex", position:"absolute", inset:0, zIndex:0, pointerEvents:"none" }}>
                   {sprints.map(si=>{
                     const over=dragOverTarget?.laneId===lane.id&&dragOverTarget?.sprintIdx===si;
-                    return <div key={si}
-                      onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOverTarget({laneId:lane.id,sprintIdx:si});}}
-                      onDragLeave={e=>{e.preventDefault();setDragOverTarget(null);}}
-                      onDrop={e=>{e.preventDefault();e.stopPropagation();onDropCell(e,lane.id,si);}}
-                      style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.12)":"transparent", transition:"background 0.15s", cursor:"copy" }}/>;
+                    return <div key={si} style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.10)":"transparent", transition:"background 0.1s" }}/>;
                   })}
                 </div>
-                {/* Bars — pointer-events none so drag events pass through to drop zones */}
-                <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4, pointerEvents:"none" }}>
+                {/* Bars — full pointer events, sit above highlight */}
+                <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4 }}>
                   {rows.length===0&&<div style={{height:20}}/>}
                   {rows.map((row,ri)=>{
                     const items=[]; let cursor=0;
                     row.forEach(proj=>{
                       const s=proj.sprintIdx||0, span=Math.min(proj.sprintCount||1,data.sprintCount-s);
                       if(s>cursor) items.push(<div key={`sp-${proj.id}`} style={{width:(s-cursor)*CW,flexShrink:0}}/>);
-                      items.push(<div key={proj.id} style={{width:span*CW,flexShrink:0,paddingLeft:4,paddingRight:4,boxSizing:"border-box",pointerEvents:"all"}}><GanttBar project={proj} sprintCount={data.sprintCount} onEdit={onEdit} onDelete={onDelete} dragging={draggingId===proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd}/></div>);
+                      items.push(<div key={proj.id} style={{width:span*CW,flexShrink:0,paddingLeft:4,paddingRight:4,boxSizing:"border-box"}}><GanttBar project={proj} sprintCount={data.sprintCount} onEdit={onEdit} onDelete={onDelete} dragging={draggingId===proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd}/></div>);
                       cursor=s+span;
                     });
                     return <div key={ri} style={{display:"flex",alignItems:"flex-start",marginBottom:2}}>{items}</div>;
@@ -255,7 +270,7 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                     {sprints.map(si=>{
                       const count=cap[si]||0, full=count>=6;
                       return (
-                        <div key={si} style={{width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,boxSizing:"border-box",padding:"3px 4px",borderLeft:`1px solid ${A.borderCard}`,pointerEvents:"all"}}>
+                        <div key={si} style={{width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,boxSizing:"border-box",padding:"3px 4px",borderLeft:`1px solid ${A.borderCard}`}}>
                           <CapBar used={count} max={6}/>
                           {!full
                             ?<button type="button" onClick={()=>onAddToCell(lane.id,si)} style={{marginTop:3,width:"100%",background:"none",border:`1px dashed ${A.borderCard}`,borderRadius:4,color:A.textSecond,fontSize:10,padding:"2px 0",cursor:"pointer",fontFamily:A.font}}>+ add</button>
@@ -395,7 +410,6 @@ export default function App() {
       setLoading(false);
     })();
 
-    // Re-sync when tab regains focus — picks up items added from scoring board
     const onFocus=async()=>{
       try{
         const{data:rows}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
