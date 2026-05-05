@@ -382,7 +382,8 @@ export default function App() {
       try {
         const {data:rows,error:err}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
         if(err&&err.code!=="PGRST116") throw err;
-        setData(rows?.value||defaultData());
+        const loaded=rows?.value||defaultData();
+        setData(loaded);
       } catch(e) {
         console.error(e);
         setData(defaultData());
@@ -390,6 +391,16 @@ export default function App() {
       }
       setLoading(false);
     })();
+
+    // Re-sync from Supabase whenever the tab regains focus (catches items added from scoring board)
+    const onFocus=async()=>{
+      try{
+        const{data:rows}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
+        if(rows?.value) setData(rows.value);
+      }catch(e){}
+    };
+    window.addEventListener("focus",onFocus);
+    return()=>window.removeEventListener("focus",onFocus);
   },[]);
 
   const updateData=useCallback(updater=>{
@@ -427,19 +438,50 @@ export default function App() {
   const handleDropCell=(e,laneId,sprintIdx)=>{
     e.preventDefault();
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
-    updateData(d=>{
-      const count=Object.values(d.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
-      if(count>=6) return d;
-      const proj=d.projects[pid]; if(!proj) return d;
-      return {...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
-    });
+
+    // If project exists in local state, update normally
+    if(data.projects?.[pid]){
+      updateData(d=>{
+        const count=Object.values(d.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
+        if(count>=6) return d;
+        const proj=d.projects[pid]; if(!proj) return d;
+        return {...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
+      });
+    } else {
+      // Project was added externally (e.g. from scoring board) — re-read from Supabase first
+      (async()=>{
+        const{data:row}=await supabase.from("roadmap_state").select("value").eq("key","main").single();
+        if(!row?.value) return;
+        const fresh=row.value;
+        const proj=fresh.projects?.[pid]; if(!proj) return;
+        const count=Object.values(fresh.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
+        if(count>=6) return;
+        const next={...fresh,projects:{...fresh.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(fresh.backlog||[]).filter(id=>id!==pid),completed:(fresh.completed||[]).filter(id=>id!==pid)};
+        await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"});
+        setData(next);
+      })();
+    }
     setDragOverTarget(null); setDraggingId(null);
   };
 
   const handleDropBacklog=e=>{
     e.preventDefault();
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
-    updateData(d=>{ const proj=d.projects[pid]; if(!proj) return d; const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid]; return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl}; });
+
+    if(data.projects?.[pid]){
+      updateData(d=>{ const proj=d.projects[pid]; if(!proj) return d; const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid]; return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl}; });
+    } else {
+      (async()=>{
+        const{data:row}=await supabase.from("roadmap_state").select("value").eq("key","main").single();
+        if(!row?.value) return;
+        const fresh=row.value;
+        const proj=fresh.projects?.[pid]; if(!proj) return;
+        const bl=fresh.backlog?.includes(pid)?fresh.backlog:[...(fresh.backlog||[]),pid];
+        const next={...fresh,projects:{...fresh.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl};
+        await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"});
+        setData(next);
+      })();
+    }
     setDraggingId(null);
   };
 
