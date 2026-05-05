@@ -31,9 +31,10 @@ const DRIVER_COLORS = {
 };
 
 const RICE_COLOR = (s) =>
-  s >= 80 ? { bg: "#EDFAF0", text: "#15803D" }
-  : s >= 50 ? { bg: "#FFFBEB", text: "#92400E" }
-  : { bg: "#FFF4ED", text: "#C2410C" };
+  s >= 4.0 ? { bg: "#EDFAF0", text: "#15803D" }   // High priority
+  : s >= 2.2 ? { bg: "#FFFBEB", text: "#92400E" }  // Medium priority
+  : s > 0    ? { bg: "#FFF4ED", text: "#C2410C" }  // Low priority
+  : { bg: "#F1F5F9", text: "#64748B" };             // Unscored
 
 const genId = () => Math.random().toString(36).slice(2, 10);
 
@@ -95,7 +96,7 @@ function GanttBar({ project, sprintCount, onEdit, onDelete, dragging, onDragStar
       </div>
       <div style={{ display:"flex", gap:4, marginTop:4, alignItems:"center", flexWrap:"wrap" }}>
         <span style={{ background:c.bg, color:c.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600, border:`1px solid ${c.border}` }}>{project.driver==="Customer Maintain"?"CM":"NF"}</span>
-        <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>S:{project.rice||0}</span>
+        <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>{project.rice>0?project.rice:"Unscored"}</span>
         <span style={{ background:"#F1F5F9", color:A.textSecond, borderRadius:4, padding:"1px 6px", fontSize:10 }}>{spanCols}sp</span>
         {project.sourceId&&<span style={{ background:"#EBF4FB", color:"#1A5C8A", borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600 }}>↗ Board</span>}
         {project.confluenceUrl && <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ color:A.textLink, fontSize:10, textDecoration:"none" }}>🔗</a>}
@@ -137,7 +138,7 @@ function ProjectModal({ project, onSave, onClose }) {
           <label style={labelSt}>Initiative title *<input value={form.name} onChange={e=>set("name",e.target.value)} style={inputSt} placeholder="Initiative title" /></label>
           <label style={labelSt}>Initiative description<textarea value={form.businessValue} onChange={e=>set("businessValue",e.target.value)} style={{...inputSt,height:64,resize:"vertical"}} placeholder="Why this matters..." /></label>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-            <label style={labelSt}>Score<input type="number" value={form.rice} onChange={e=>set("rice",+e.target.value)} style={inputSt} min={0} max={200} /></label>
+            <label style={labelSt}>Score (0–6+)<input type="number" value={form.rice} onChange={e=>set("rice",+e.target.value)} style={inputSt} min={0} max={10} step={0.01}/></label>
             <label style={labelSt}>Sprint count<input type="number" value={form.sprintCount} onChange={e=>set("sprintCount",+e.target.value)} style={inputSt} min={1} max={20} /></label>
           </div>
           <label style={labelSt}>Driver<select value={form.driver} onChange={e=>set("driver",e.target.value)} style={inputSt}><option>New Feature</option><option>Customer Maintain</option></select></label>
@@ -229,8 +230,7 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                 onDragOver={e=>{
                   e.preventDefault();
                   const rect=e.currentTarget.getBoundingClientRect();
-                  const x=e.clientX-rect.left;
-                  const si=Math.min(Math.floor(x/CW),data.sprintCount-1);
+                  const si=Math.min(Math.floor((e.clientX-rect.left)/CW),data.sprintCount-1);
                   setDragOverTarget({laneId:lane.id,sprintIdx:si});
                 }}
                 onDragLeave={e=>{
@@ -239,20 +239,19 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                 onDrop={e=>{
                   e.preventDefault();
                   const rect=e.currentTarget.getBoundingClientRect();
-                  const x=e.clientX-rect.left;
-                  const si=Math.min(Math.floor(x/CW),data.sprintCount-1);
+                  const si=Math.min(Math.floor((e.clientX-rect.left)/CW),data.sprintCount-1);
                   onDropCell(e,lane.id,si);
                   setDragOverTarget(null);
                 }}
               >
-                {/* Sprint column highlight overlay — visual only, no pointer events */}
+                {/* Column highlight — visual only */}
                 <div style={{ display:"flex", position:"absolute", inset:0, zIndex:0, pointerEvents:"none" }}>
                   {sprints.map(si=>{
                     const over=dragOverTarget?.laneId===lane.id&&dragOverTarget?.sprintIdx===si;
                     return <div key={si} style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.10)":"transparent", transition:"background 0.1s" }}/>;
                   })}
                 </div>
-                {/* Bars — full pointer events, sit above highlight */}
+                {/* Bars — full pointer events */}
                 <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4 }}>
                   {rows.length===0&&<div style={{height:20}}/>}
                   {rows.map((row,ri)=>{
@@ -317,7 +316,7 @@ function ListView({ data, allProjects, onEdit, onDelete, onMarkComplete }) {
                         {p.businessValue&&<div style={{fontSize:12,color:A.textSecond,marginBottom:10,lineHeight:1.4}}>{p.businessValue}</div>}
                         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:12}}>
                           <span style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>{p.driver}</span>
-                          <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>Score: {p.rice}</span>
+                          <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>{p.rice>0?`Score: ${p.rice}`:"Unscored"}</span>
                           <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"2px 8px",fontSize:11}}>{p.sprintCount} sprint{p.sprintCount!==1?"s":""}</span>
                           {p.sourceId&&<span style={{background:"#EBF4FB",color:"#1A5C8A",border:"1px solid #A8D0EF",borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>↗ From scoring board</span>}
                           {p.confluenceUrl&&<a href={p.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:A.textLink,fontSize:11,textDecoration:"none",fontWeight:600}}>📄 Confluence</a>}
@@ -363,7 +362,7 @@ function BacklogPanel({ data, allProjects, draggingId, backlogDragIdx, onDragSta
                 </div>
                 {p.sourceId&&<div style={{fontSize:10,background:"#EBF4FB",color:"#1A5C8A",border:"1px solid #A8D0EF",borderRadius:4,padding:"1px 6px",marginBottom:4,display:"inline-block",fontWeight:600}}>↗ From scoring board</div>}
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
-                  <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>S:{p.rice||0}</span>
+                  <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{p.rice>0?p.rice:"Unscored"}</span>
                   <span style={{background:c.bg,color:c.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600,border:`1px solid ${c.border}`}}>{p.driver==="Customer Maintain"?"CM":"NF"}</span>
                   <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"1px 6px",fontSize:10}}>{p.sprintCount||1}sp</span>
                 </div>
@@ -461,7 +460,6 @@ export default function App() {
     e.preventDefault();
     const pid=e.dataTransfer.getData("pid"); if(!pid) return;
     setDragOverTarget(null); setDraggingId(null);
-
     const localProj=data?.projects?.[pid];
     if(localProj){
       updateData(d=>{
