@@ -198,14 +198,15 @@ function SettingsModal({ data, onSave, onClose }) {
 function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOverTarget, onDragStart, onDragEnd, onDropCell, onEdit, onDelete, onAddToCell }) {
   const sprints=Array.from({length:data.sprintCount},(_,i)=>i);
   const CW=180, LW=160;
+  const colStyle = { width:CW, minWidth:CW, maxWidth:CW, flexShrink:0, flexGrow:0, boxSizing:"border-box" };
   return (
     <div style={{ overflowX:"auto", padding:"0 24px 24px" }}>
       <div style={{ minWidth:LW+data.sprintCount*CW }}>
         {/* Header */}
         <div style={{ display:"flex", position:"sticky", top:0, zIndex:10, background:A.canvas }}>
-          <div style={{ width:LW, flexShrink:0 }}/>
+          <div style={{ width:LW, minWidth:LW, maxWidth:LW, flexShrink:0, boxSizing:"border-box", borderBottom:`2px solid ${A.interactive}` }}/>
           {sprints.map(i=>(
-            <div key={i} style={{ width:CW, flexShrink:0, padding:"10px 8px", textAlign:"center", borderBottom:`2px solid ${A.interactive}`, borderRight:`1px solid ${A.borderCard}`, background:A.canvas }}>
+            <div key={i} style={{ ...colStyle, padding:"10px 8px", textAlign:"center", borderBottom:`2px solid ${A.interactive}`, borderLeft:`1px solid ${A.borderCard}`, background:A.canvas }}>
               <div style={{ fontWeight:600, fontSize:12, color:A.interactive, fontFamily:A.font }}>Sprint {i+1}</div>
               <div style={{ fontSize:11, color:A.textSecond, marginTop:2, fontFamily:A.font }}>{formatDate(data.startDate,data.sprintLengthDays,i)} – {formatDate(data.startDate,data.sprintLengthDays,i+1)}</div>
             </div>
@@ -219,7 +220,7 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
           const active=Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx!=null).length;
           return (
             <div key={lane.id} style={{ display:"flex", borderBottom:`1px solid ${A.borderCard}`, background:li%2===0?A.canvas:"#F8FAFC" }}>
-              <div style={{ width:LW, flexShrink:0, padding:"14px 12px", borderRight:`2px solid ${A.interactive}`, display:"flex", flexDirection:"column" }}>
+              <div style={{ width:LW, minWidth:LW, maxWidth:LW, flexShrink:0, boxSizing:"border-box", padding:"14px 12px", borderRight:`2px solid ${A.interactive}`, display:"flex", flexDirection:"column" }}>
                 <span style={{ fontWeight:600, fontSize:13, color:A.textPrimary, fontFamily:A.font, lineHeight:1.3 }}>{lane.name}</span>
                 <span style={{ fontSize:11, color:A.textSecond, marginTop:3, fontFamily:A.font }}>{active} active</span>
               </div>
@@ -228,7 +229,7 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                 <div style={{ display:"flex", position:"absolute", inset:0, zIndex:0 }}>
                   {sprints.map(si=>{
                     const over=dragOverTarget?.laneId===lane.id&&dragOverTarget?.sprintIdx===si;
-                    return <div key={si} onDragOver={e=>{e.preventDefault();setDragOverTarget({laneId:lane.id,sprintIdx:si});}} onDragLeave={()=>setDragOverTarget(null)} onDrop={e=>onDropCell(e,lane.id,si)} style={{ width:CW, flexShrink:0, height:"100%", borderRight:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.08)":"transparent", transition:"background 0.15s" }}/>;
+                    return <div key={si} onDragOver={e=>{e.preventDefault();setDragOverTarget({laneId:lane.id,sprintIdx:si});}} onDragLeave={()=>setDragOverTarget(null)} onDrop={e=>onDropCell(e,lane.id,si)} style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.08)":"transparent", transition:"background 0.15s" }}/>;
                   })}
                 </div>
                 {/* Bars */}
@@ -249,7 +250,7 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                     {sprints.map(si=>{
                       const count=cap[si]||0, full=count>=6;
                       return (
-                        <div key={si} style={{width:CW,flexShrink:0,padding:"3px 4px"}}>
+                        <div key={si} style={{width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,boxSizing:"border-box",padding:"3px 4px",borderLeft:`1px solid ${A.borderCard}`}}>
                           <CapBar used={count} max={6}/>
                           {!full
                             ?<button type="button" onClick={()=>onAddToCell(lane.id,si)} style={{marginTop:3,width:"100%",background:"none",border:`1px dashed ${A.borderCard}`,borderRadius:4,color:A.textSecond,fontSize:10,padding:"2px 0",cursor:"pointer",fontFamily:A.font}}>+ add</button>
