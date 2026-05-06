@@ -513,91 +513,73 @@ export default function App() {
 
   return (
     <div style={{fontFamily:A.font,background:A.canvas,minHeight:"100vh",display:"flex",flexDirection:"column"}}>
-      {/* Global header */}
-      <div style={{background:A.sidebar,height:48,display:"flex",alignItems:"center",padding:"0 20px",gap:12,flexShrink:0}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,6px)",gap:3}}>
-          {Array(9).fill(0).map((_,i)=><div key={i} style={{width:6,height:6,background:A.textOnDark,borderRadius:1,opacity:0.6}}/>)}
-        </div>
-        <span style={{color:A.textOnDark,fontWeight:700,fontSize:15,letterSpacing:"-0.2px"}}>Aline</span>
+
+      {/* ── Top header — matches Aline scoring app style ── */}
+      <div style={{background:A.sidebar,height:48,display:"flex",alignItems:"center",padding:"0 20px",gap:10,flexShrink:0,position:"sticky",top:0,zIndex:20}}>
+        {/* Logo */}
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="5" fill="#337AB8"/><path d="M6 16L11 6L16 16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 13H14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+        <span style={{color:"#fff",fontWeight:700,fontSize:16,letterSpacing:"0.01em"}}>Aline</span>
+        <span style={{color:"#2d4a6b",fontSize:13,margin:"0 2px"}}>/</span>
+        <span style={{color:"#8BA3BC",fontSize:13}}>Product Roadmap</span>
+
         <div style={{flex:1}}/>
-        <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.1)",borderRadius:20,padding:"4px 14px",cursor:"pointer"}}>
-          <span style={{fontSize:12,color:A.textOnDark}}>🏠 Product Roadmap</span>
-          <span style={{fontSize:10,color:A.textOnDark,opacity:0.6}}>▼</span>
+
+        {/* Cross-app nav */}
+        <a href="https://prioritization-five.vercel.app/" target="_blank" rel="noopener noreferrer"
+          style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#E2E8F0",fontSize:13,textDecoration:"none",fontFamily:A.font,fontWeight:500,transition:"background .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.18)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.1)"}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8M8 1h4m0 0v4m0-4L5.5 7.5" stroke="#E2E8F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Initiative Prioritization
+        </a>
+
+        {/* View toggle */}
+        <div style={{display:"flex",border:"1px solid rgba(255,255,255,0.2)",borderRadius:6,overflow:"hidden"}}>
+          {["timeline","list"].map(v=>(
+            <button key={v} type="button" onClick={()=>setView(v)}
+              style={{padding:"5px 14px",background:view===v?"#337AB8":"transparent",color:view===v?"#fff":"#8BA3BC",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:A.font,transition:"all .15s"}}>
+              {v.charAt(0).toUpperCase()+v.slice(1)}
+            </button>
+          ))}
         </div>
+
+        {/* Backlog toggle */}
+        <button type="button" onClick={()=>setShowBacklog(b=>!b)}
+          style={{padding:"5px 12px",background:showBacklog?"rgba(51,122,184,0.3)":"rgba(255,255,255,0.08)",border:`1px solid ${showBacklog?"#337AB8":"rgba(255,255,255,0.15)"}`,borderRadius:6,color:showBacklog?"#7EC8F5":"#8BA3BC",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font,transition:"all .15s"}}>
+          Backlog ({(data.backlog||[]).length})
+        </button>
+
+        {/* Settings */}
+        <button type="button" onClick={()=>setShowSettings(true)}
+          style={{padding:"5px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#8BA3BC",fontSize:13,cursor:"pointer",fontFamily:A.font,transition:"all .15s"}}>
+          ⚙
+        </button>
+
+        {/* Add initiative */}
+        <button type="button" onClick={()=>setAddingTo({type:"backlog"})}
+          style={{padding:"5px 14px",background:"#337AB8",border:"none",borderRadius:6,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font}}>
+          + Initiative
+        </button>
       </div>
 
-      <div style={{display:"flex",flex:1,overflow:"hidden"}}>
-        {/* Sidebar */}
-        <div style={{width:220,background:A.sidebar,flexShrink:0,display:"flex",flexDirection:"column"}}>
-          <div style={{padding:"12px 10px 8px"}}>
-            <div style={{background:"rgba(255,255,255,0.08)",borderRadius:6,padding:"8px 10px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
-              <span style={{fontSize:12}}>⊞</span>
-              <span style={{fontSize:12,color:A.textOnDark}}>All Communities</span>
-              <span style={{fontSize:10,color:A.textOnDark,opacity:0.5,marginLeft:"auto"}}>▼</span>
-            </div>
-          </div>
-
-          <nav style={{padding:"6px 0",flex:1}}>
-            {[{label:"Roadmap",icon:"◈",active:true},{label:"Backlog",icon:"☰",active:false},{label:"Completed",icon:"✓",active:false}].map(item=>(
-              <div key={item.label}
-                onClick={()=>{ if(item.label==="Backlog") setShowBacklog(b=>!b); if(item.label==="Completed") setCompletedOpen(o=>!o); }}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",background:item.active?A.interactive:"transparent",borderRadius:item.active?6:0,margin:item.active?"2px 8px":"2px 0"}}>
-                <span style={{fontSize:14,color:A.textOnDark,opacity:item.active?1:0.7}}>{item.icon}</span>
-                <span style={{fontSize:14,fontWeight:item.active?600:400,color:A.textOnDark,opacity:item.active?1:0.85}}>{item.label}</span>
-              </div>
-            ))}
-
-            <div style={{margin:"14px 14px 6px",fontSize:11,color:A.textOnDark,opacity:0.45,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.07em"}}>Swimlanes</div>
-            {data.swimlanes.map(lane=>(
-              <div key={lane.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px"}}>
-                <div style={{width:6,height:6,background:A.interactive,borderRadius:"50%",flexShrink:0}}/>
-                <span style={{fontSize:12,color:A.textOnDark,opacity:0.8}}>{lane.name}</span>
-              </div>
-            ))}
-          </nav>
-
-          <div style={{padding:"10px 8px",borderTop:"1px solid rgba(255,255,255,0.1)"}}>
-            <button type="button" onClick={()=>setShowSettings(true)}
-              style={{width:"100%",background:"rgba(255,255,255,0.07)",border:"none",borderRadius:6,padding:"8px 12px",color:A.textOnDark,fontSize:12,cursor:"pointer",textAlign:"left",fontFamily:A.font,display:"flex",alignItems:"center",gap:8}}>
-              ⚙ Settings
-            </button>
-          </div>
+      {/* ── Page subheader ── */}
+      <div style={{background:A.canvas,borderBottom:`1px solid ${A.borderCard}`,padding:"12px 24px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",flexShrink:0}}>
+        <div style={{flex:1}}>
+          <h1 style={{margin:0,fontSize:22,fontWeight:700,color:A.textPrimary,lineHeight:1.1,fontFamily:A.font}}>Product Roadmap</h1>
+          <div style={{fontSize:12,color:A.textSecond,marginTop:3,fontFamily:A.font}}>{data.sprintLengthDays}-day sprints · {data.sprintCount} sprints · starts {data.startDate}</div>
         </div>
+        {error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"5px 12px",fontSize:11}}>{error}</div>}
+      </div>
 
-        {/* Main */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          {/* Page header */}
-          <div style={{background:A.canvas,borderBottom:`1px solid ${A.borderCard}`,padding:"16px 24px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",flexShrink:0}}>
-            <div style={{flex:1}}>
-              <h1 style={{margin:0,fontSize:22,fontWeight:700,color:A.textPrimary,lineHeight:1.1,fontFamily:A.font}}>Product Roadmap</h1>
-              <div style={{fontSize:12,color:A.textSecond,marginTop:3,fontFamily:A.font}}>{data.sprintLengthDays}-day sprints · {data.sprintCount} sprints · starts {data.startDate}</div>
-            </div>
-            {error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"5px 12px",fontSize:11}}>{error}</div>}
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <div style={{display:"flex",border:`1px solid ${A.borderCard}`,borderRadius:6,overflow:"hidden"}}>
-                {["timeline","list"].map(v=>(
-                  <button key={v} type="button" onClick={()=>setView(v)}
-                    style={{padding:"6px 16px",background:view===v?A.interactive:A.canvas,color:view===v?"#fff":A.textPrimary,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:A.font}}>
-                    {v.charAt(0).toUpperCase()+v.slice(1)}
-                  </button>
-                ))}
-              </div>
-              <button type="button" onClick={()=>setShowBacklog(b=>!b)}
-                style={{...btnG,fontSize:12,fontWeight:600,background:showBacklog?"#EBF4FB":A.canvas,color:showBacklog?A.interactive:A.textPrimary,borderColor:showBacklog?A.interactive:A.borderCard}}>
-                Backlog ({(data.backlog||[]).length})
-              </button>
-              <button type="button" onClick={()=>setAddingTo({type:"backlog"})} style={{...btnP,fontSize:12}}>+ Initiative</button>
-            </div>
+      {/* ── Main content (no sidebar) ── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
+          <div style={{flex:1}}>
+            {view==="timeline"
+              ?<TimelineView data={data} allProjects={allProjects} draggingId={draggingId} dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDragStart={dragStart} onDragEnd={dragEnd} onDropCell={handleDropCell} onEdit={setEditProject} onDelete={handleDelete} onAddToCell={(laneId,si)=>setAddingTo({type:"sprint",laneId,sprintIdx:si})}/>
+              :<ListView data={data} allProjects={allProjects} onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}/>
+            }
           </div>
-
-          {/* Scrollable body */}
-          <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
-            <div style={{flex:1}}>
-              {view==="timeline"
-                ?<TimelineView data={data} allProjects={allProjects} draggingId={draggingId} dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDragStart={dragStart} onDragEnd={dragEnd} onDropCell={handleDropCell} onEdit={setEditProject} onDelete={handleDelete} onAddToCell={(laneId,si)=>setAddingTo({type:"sprint",laneId,sprintIdx:si})}/>
-                :<ListView data={data} allProjects={allProjects} onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}/>
-              }
-            </div>
 
             {/* Completed */}
             <div style={{margin:"0 24px 20px",borderTop:`1px solid ${A.borderCard}`,paddingTop:14}}>
@@ -635,6 +617,12 @@ export default function App() {
       </div>
 
       {(addingTo||editProject)&&(
+        <ProjectModal project={editProject||null} onSave={editProject?handleUpdateProject:handleSaveNew} onClose={()=>{setEditProject(null);setAddingTo(null);}}/>
+      )}
+      {showSettings&&<SettingsModal data={data} onSave={s=>{updateData(d=>({...d,...s}));setShowSettings(false);}} onClose={()=>setShowSettings(false)}/>}
+    </div>
+  );
+}      {(addingTo||editProject)&&(
         <ProjectModal project={editProject||null} onSave={editProject?handleUpdateProject:handleSaveNew} onClose={()=>{setEditProject(null);setAddingTo(null);}}/>
       )}
       {showSettings&&<SettingsModal data={data} onSave={s=>{updateData(d=>({...d,...s}));setShowSettings(false);}} onClose={()=>setShowSettings(false)}/>}
