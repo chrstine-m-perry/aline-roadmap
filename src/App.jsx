@@ -2,149 +2,122 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://ftwdycuopzfiledwceme.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0d2R5Y3VvcHpmaWxlZHdjZW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzgwNTIsImV4cCI6MjA5MzE1NDA1Mn0.ls5B-0rU_uSXdSZH8sX8ZXaU8gCneZ-BYLrd8tXV1Sg";
-
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0d2R5Y3VvcHpmaWxlZHdjZW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzgwNTIsImV4cCI6MjA5MzE1NDA1Mn0.ls5B-0rU_uSXdSZH8sX8ZXaU8gCneZ-BYLrd8tXV1Sg";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ── Aline Design Tokens ──────────────────────────────────────── */
 const A = {
-  sidebar:     "#14273D",
-  interactive: "#337AB8",
-  textOnDark:  "#E2E8F0",
-  canvas:      "#FFFFFF",
-  card:        "#FFFFFF",
-  borderCard:  "#E2E8F0",
-  textPrimary: "#14273D",
-  textSecond:  "#64748B",
-  textLink:    "#337AB8",
-  shadowCard:  "0 1px 3px rgba(0,0,0,0.08)",
-  font:        "'DM Sans', Arial, sans-serif",
-  statusGood:  "#22C55E",
-  statusLate:  "#F97316",
-  statusCrit:  "#EF4444",
+  sidebar:"#14273D", interactive:"#337AB8", textOnDark:"#E2E8F0",
+  canvas:"#FFFFFF", card:"#FFFFFF", borderCard:"#E2E8F0",
+  textPrimary:"#14273D", textSecond:"#64748B", textLink:"#337AB8",
+  shadowCard:"0 1px 3px rgba(0,0,0,0.08)", font:"'DM Sans', Arial, sans-serif",
+  statusGood:"#22C55E", statusLate:"#F97316", statusCrit:"#EF4444",
 };
 
 const DRIVER_COLORS = {
-  "New Feature":       { bg: "#EBF4FB", text: "#1A5C8A", border: "#A8D0EF" },
-  "Customer Maintain": { bg: "#EDFAF0", text: "#1A5C2A", border: "#A8D8A8" },
+  "New Feature":       { bg:"#EBF4FB", text:"#1A5C8A", border:"#A8D0EF" },
+  "Customer Maintain": { bg:"#EDFAF0", text:"#1A5C2A", border:"#A8D8A8" },
 };
 
 const RICE_COLOR = (s) =>
-  s >= 4.0 ? { bg: "#EDFAF0", text: "#15803D" }   // High priority
-  : s >= 2.2 ? { bg: "#FFFBEB", text: "#92400E" }  // Medium priority
-  : s > 0    ? { bg: "#FFF4ED", text: "#C2410C" }  // Low priority
-  : { bg: "#F1F5F9", text: "#64748B" };             // Unscored
+  s >= 4.0 ? { bg:"#EDFAF0", text:"#15803D" }
+  : s >= 2.2 ? { bg:"#FFFBEB", text:"#92400E" }
+  : s > 0    ? { bg:"#FFF4ED", text:"#C2410C" }
+  : { bg:"#F1F5F9", text:"#64748B" };
 
 const genId = () => Math.random().toString(36).slice(2, 10);
 
 const defaultData = () => ({
-  sprintLengthDays: 14,
-  sprintCount: 8,
-  startDate: new Date().toISOString().split("T")[0],
-  swimlanes: [
-    { id: "lane-1", name: "Compass Global SSO" },
-    { id: "lane-2", name: "Compass Dashboard" },
-    { id: "lane-3", name: "Engage" },
+  sprintLengthDays:14, sprintCount:8,
+  startDate:new Date().toISOString().split("T")[0],
+  swimlanes:[
+    {id:"lane-1",name:"Compass Global SSO"},
+    {id:"lane-2",name:"Compass Dashboard"},
+    {id:"lane-3",name:"Engage"},
   ],
-  projects: {},
-  backlog: [],
-  completed: [],
+  projects:{}, backlog:[], completed:[],
 });
 
 function formatDate(isoDate, sprintLengthDays, sprintIndex) {
-  const d = new Date(isoDate);
-  d.setDate(d.getDate() + sprintIndex * sprintLengthDays);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const d=new Date(isoDate);
+  d.setDate(d.getDate()+sprintIndex*sprintLengthDays);
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
 }
 
-/* ── Style helpers ────────────────────────────────────────────── */
-const labelSt = { display:"flex", flexDirection:"column", gap:4, fontSize:13, color:A.textPrimary, fontWeight:600, fontFamily:A.font };
-const inputSt = { padding:"8px 10px", border:`1px solid ${A.borderCard}`, borderRadius:6, fontSize:13, color:A.textPrimary, background:A.canvas, outline:"none", fontFamily:A.font };
-const btnP  = { padding:"8px 18px", background:A.interactive, color:"#fff", border:"none", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:A.font };
-const btnS  = { padding:"8px 18px", background:A.canvas, color:A.interactive, border:`1px solid ${A.interactive}`, borderRadius:6, fontSize:13, cursor:"pointer", fontFamily:A.font };
-const btnG  = { padding:"6px 14px", background:A.canvas, color:A.textPrimary, border:`1px solid ${A.borderCard}`, borderRadius:6, fontSize:13, cursor:"pointer", fontFamily:A.font };
+const labelSt={display:"flex",flexDirection:"column",gap:4,fontSize:13,color:A.textPrimary,fontWeight:600,fontFamily:A.font};
+const inputSt={padding:"8px 10px",border:`1px solid ${A.borderCard}`,borderRadius:6,fontSize:13,color:A.textPrimary,background:A.canvas,outline:"none",fontFamily:A.font};
+const btnP={padding:"8px 18px",background:A.interactive,color:"#fff",border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font};
+const btnS={padding:"8px 18px",background:A.canvas,color:A.interactive,border:`1px solid ${A.interactive}`,borderRadius:6,fontSize:13,cursor:"pointer",fontFamily:A.font};
+const btnG={padding:"6px 14px",background:A.canvas,color:A.textPrimary,border:`1px solid ${A.borderCard}`,borderRadius:6,fontSize:13,cursor:"pointer",fontFamily:A.font};
 
-/* ── Capacity bar ─────────────────────────────────────────────── */
-function CapBar({ used, max }) {
-  const pct = Math.min(1, used / max);
-  const color = pct >= 1 ? A.statusCrit : pct >= 0.75 ? A.statusLate : A.statusGood;
-  return (
-    <div style={{ height:3, background:A.borderCard, borderRadius:2, marginTop:4, overflow:"hidden" }}>
-      <div style={{ height:"100%", width:`${pct*100}%`, background:color, borderRadius:2, transition:"width 0.3s" }} />
-    </div>
-  );
+function CapBar({used,max}){
+  const pct=Math.min(1,used/max);
+  const color=pct>=1?A.statusCrit:pct>=0.75?A.statusLate:A.statusGood;
+  return <div style={{height:3,background:A.borderCard,borderRadius:2,marginTop:4,overflow:"hidden"}}><div style={{height:"100%",width:`${pct*100}%`,background:color,borderRadius:2,transition:"width 0.3s"}}/></div>;
 }
 
-/* ── Gantt bar ────────────────────────────────────────────────── */
-function GanttBar({ project, sprintCount, onEdit, onDelete, dragging, onDragStart, onDragEnd }) {
-  const spanCols = Math.min(project.sprintCount || 1, sprintCount - (project.sprintIdx || 0));
-  const c = DRIVER_COLORS[project.driver] || DRIVER_COLORS["New Feature"];
-  const rc = RICE_COLOR(project.rice || 0);
+function GanttBar({project,sprintCount,onEdit,onDelete,dragging,onDragStart,onDragEnd}){
+  const spanCols=Math.min(project.sprintCount||1,sprintCount-(project.sprintIdx||0));
+  const c=DRIVER_COLORS[project.driver]||DRIVER_COLORS["New Feature"];
+  const rc=RICE_COLOR(project.rice||0);
   return (
-    <div draggable
-      onDragStart={e => { e.stopPropagation(); onDragStart(e, project.id); }}
-      onDragEnd={onDragEnd}
-      style={{ width:"100%", background:c.bg, border:`1.5px solid ${c.border}`, borderRadius:6, padding:"6px 8px", marginBottom:2, cursor:"grab", opacity:dragging?0.4:1, boxSizing:"border-box", overflow:"hidden", boxShadow:A.shadowCard, fontFamily:A.font }}
-    >
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:4 }}>
-        <span style={{ fontWeight:600, fontSize:12, color:A.textPrimary, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>{project.name}</span>
-        <div style={{ display:"flex", gap:2, flexShrink:0 }}>
-          <button type="button" onClick={e=>{e.stopPropagation();onEdit(project);}} style={{ background:"none",border:"none",cursor:"pointer",padding:"1px 3px",color:A.textSecond,fontSize:11 }}>✎</button>
-          <button type="button" onClick={e=>{e.stopPropagation();onDelete(project.id);}} style={{ background:"none",border:"none",cursor:"pointer",padding:"1px 3px",color:A.statusCrit,fontSize:11 }}>×</button>
+    <div draggable onDragStart={e=>{e.stopPropagation();onDragStart(e,project.id);}} onDragEnd={onDragEnd}
+      style={{width:"100%",background:c.bg,border:`1.5px solid ${c.border}`,borderRadius:6,padding:"6px 8px",marginBottom:2,cursor:"grab",opacity:dragging?0.4:1,boxSizing:"border-box",overflow:"hidden",boxShadow:A.shadowCard,fontFamily:A.font}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
+        <span style={{fontWeight:600,fontSize:12,color:A.textPrimary,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{project.name}</span>
+        <div style={{display:"flex",gap:2,flexShrink:0}}>
+          <button type="button" onClick={e=>{e.stopPropagation();onEdit(project);}} style={{background:"none",border:"none",cursor:"pointer",padding:"1px 3px",color:A.textSecond,fontSize:11}}>✎</button>
+          <button type="button" onClick={e=>{e.stopPropagation();onDelete(project.id);}} style={{background:"none",border:"none",cursor:"pointer",padding:"1px 3px",color:A.statusCrit,fontSize:11}}>×</button>
         </div>
       </div>
-      <div style={{ display:"flex", gap:4, marginTop:4, alignItems:"center", flexWrap:"wrap" }}>
-        <span style={{ background:c.bg, color:c.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600, border:`1px solid ${c.border}` }}>{project.driver==="Customer Maintain"?"CM":"NF"}</span>
-        <span style={{ background:rc.bg, color:rc.text, borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:700 }}>{project.rice>0?project.rice:"Unscored"}</span>
-        <span style={{ background:"#F1F5F9", color:A.textSecond, borderRadius:4, padding:"1px 6px", fontSize:10 }}>{spanCols}sp</span>
-        {project.sourceId&&<span style={{ background:"#EBF4FB", color:"#1A5C8A", borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:600 }}>↗ Board</span>}
-        {project.confluenceUrl && <a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ color:A.textLink, fontSize:10, textDecoration:"none" }}>🔗</a>}
+      <div style={{display:"flex",gap:4,marginTop:4,alignItems:"center",flexWrap:"wrap"}}>
+        <span style={{background:c.bg,color:c.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600,border:`1px solid ${c.border}`}}>{project.driver==="Customer Maintain"?"CM":"NF"}</span>
+        <span style={{background:rc.bg,color:rc.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{project.rice>0?project.rice:"Unscored"}</span>
+        <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"1px 6px",fontSize:10}}>{spanCols}sp</span>
+        {project.sourceId&&<span style={{background:"#EBF4FB",color:"#1A5C8A",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600}}>↗ Board</span>}
+        {project.confluenceUrl&&<a href={project.confluenceUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:A.textLink,fontSize:10,textDecoration:"none"}}>🔗</a>}
       </div>
-      {project.businessValue && spanCols>1 && (
-        <div style={{ fontSize:10, color:A.textSecond, marginTop:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{project.businessValue}</div>
+      {project.businessValue&&spanCols>1&&(
+        <div style={{fontSize:10,color:A.textSecond,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{project.businessValue}</div>
       )}
     </div>
   );
 }
 
-/* ── Row-packing ──────────────────────────────────────────────── */
-function buildRows(allProjects, laneId, total) {
-  const placed = Object.values(allProjects).filter(p => p.laneId===laneId && p.sprintIdx!=null);
+function buildRows(allProjects,laneId,total){
+  const placed=Object.values(allProjects).filter(p=>p.laneId===laneId&&p.sprintIdx!=null);
   placed.sort((a,b)=>(a.sprintIdx||0)-(b.sprintIdx||0));
-  const rows = [];
-  placed.forEach(proj => {
-    const s=proj.sprintIdx||0, span=Math.min(proj.sprintCount||1,total-s), e=s+span-1;
+  const rows=[];
+  placed.forEach(proj=>{
+    const s=proj.sprintIdx||0,span=Math.min(proj.sprintCount||1,total-s),e=s+span-1;
     let ok=false;
-    for(const row of rows){ const last=row[row.length-1]; const le=(last.sprintIdx||0)+Math.min(last.sprintCount||1,total-(last.sprintIdx||0))-1; if(s>le){row.push(proj);ok=true;break;} }
+    for(const row of rows){const last=row[row.length-1];const le=(last.sprintIdx||0)+Math.min(last.sprintCount||1,total-(last.sprintIdx||0))-1;if(s>le){row.push(proj);ok=true;break;}}
     if(!ok) rows.push([proj]);
   });
   return rows;
 }
 
-/* ── Project modal ────────────────────────────────────────────── */
-function ProjectModal({ project, onSave, onClose }) {
-  const [form, setForm] = useState(project || { id:genId(), name:"", businessValue:"", rice:50, sprintCount:1, driver:"New Feature", confluenceUrl:"" });
+function ProjectModal({project,onSave,onClose}){
+  const [form,setForm]=useState(project||{id:genId(),name:"",businessValue:"",rice:0,sprintCount:1,driver:"New Feature",confluenceUrl:""});
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   const save=e=>{e.preventDefault();e.stopPropagation();if(form.name)onSave(form);};
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(20,39,61,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000 }} onClick={e=>e.stopPropagation()}>
-      <div style={{ background:A.canvas,borderRadius:8,padding:28,width:440,maxWidth:"92vw",boxShadow:"0 8px 40px rgba(20,39,61,0.2)",fontFamily:A.font }} onClick={e=>e.stopPropagation()}>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20 }}>
-          <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:A.textPrimary }}>{project?"Edit initiative":"Add initiative"}</h3>
-          <button type="button" onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:20,color:A.textSecond,lineHeight:1 }}>×</button>
+    <div style={{position:"fixed",inset:0,background:"rgba(20,39,61,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:A.canvas,borderRadius:8,padding:28,width:440,maxWidth:"92vw",boxShadow:"0 8px 40px rgba(20,39,61,0.2)",fontFamily:A.font}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <h3 style={{margin:0,fontSize:16,fontWeight:700,color:A.textPrimary}}>{project?"Edit initiative":"Add initiative"}</h3>
+          <button type="button" onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:A.textSecond,lineHeight:1}}>×</button>
         </div>
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          <label style={labelSt}>Initiative title *<input value={form.name} onChange={e=>set("name",e.target.value)} style={inputSt} placeholder="Initiative title" /></label>
-          <label style={labelSt}>Initiative description<textarea value={form.businessValue} onChange={e=>set("businessValue",e.target.value)} style={{...inputSt,height:64,resize:"vertical"}} placeholder="Why this matters..." /></label>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <label style={labelSt}>Initiative title *<input value={form.name} onChange={e=>set("name",e.target.value)} style={inputSt} placeholder="Initiative title"/></label>
+          <label style={labelSt}>Initiative description<textarea value={form.businessValue} onChange={e=>set("businessValue",e.target.value)} style={{...inputSt,height:64,resize:"vertical"}} placeholder="Why this matters..."/></label>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <label style={labelSt}>Score (0–6+)<input type="number" value={form.rice} onChange={e=>set("rice",+e.target.value)} style={inputSt} min={0} max={10} step={0.01}/></label>
-            <label style={labelSt}>Sprint count<input type="number" value={form.sprintCount} onChange={e=>set("sprintCount",+e.target.value)} style={inputSt} min={1} max={20} /></label>
+            <label style={labelSt}>Sprint count<input type="number" value={form.sprintCount} onChange={e=>set("sprintCount",+e.target.value)} style={inputSt} min={1} max={20}/></label>
           </div>
           <label style={labelSt}>Driver<select value={form.driver} onChange={e=>set("driver",e.target.value)} style={inputSt}><option>New Feature</option><option>Customer Maintain</option></select></label>
-          <label style={labelSt}>Confluence URL<input value={form.confluenceUrl} onChange={e=>set("confluenceUrl",e.target.value)} style={inputSt} placeholder="https://..." /></label>
+          <label style={labelSt}>Confluence URL<input value={form.confluenceUrl} onChange={e=>set("confluenceUrl",e.target.value)} style={inputSt} placeholder="https://..."/></label>
         </div>
-        <div style={{ display:"flex",gap:10,marginTop:24,justifyContent:"flex-end" }}>
+        <div style={{display:"flex",gap:10,marginTop:24,justifyContent:"flex-end"}}>
           <button type="button" onClick={onClose} style={btnS}>Cancel</button>
           <button type="button" onClick={save} style={{...btnP,opacity:form.name?1:0.5}} disabled={!form.name}>{project?"Save changes":"Add initiative"}</button>
         </div>
@@ -153,41 +126,40 @@ function ProjectModal({ project, onSave, onClose }) {
   );
 }
 
-/* ── Settings modal ───────────────────────────────────────────── */
-function SettingsModal({ data, onSave, onClose }) {
+function SettingsModal({data,onSave,onClose}){
   const [sprintLen,setSprintLen]=useState(data.sprintLengthDays);
   const [sprintCount,setSprintCount]=useState(data.sprintCount);
   const [startDate,setStartDate]=useState(data.startDate);
   const [lanes,setLanes]=useState(data.swimlanes.map(l=>({...l})));
   const [newLane,setNewLane]=useState("");
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(20,39,61,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000 }}>
-      <div style={{ background:A.canvas,borderRadius:8,padding:28,width:460,maxWidth:"92vw",boxShadow:"0 8px 40px rgba(20,39,61,0.2)",fontFamily:A.font }}>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20 }}>
-          <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:A.textPrimary }}>Roadmap settings</h3>
-          <button type="button" onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:20,color:A.textSecond }}>×</button>
+    <div style={{position:"fixed",inset:0,background:"rgba(20,39,61,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
+      <div style={{background:A.canvas,borderRadius:8,padding:28,width:460,maxWidth:"92vw",boxShadow:"0 8px 40px rgba(20,39,61,0.2)",fontFamily:A.font}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <h3 style={{margin:0,fontSize:16,fontWeight:700,color:A.textPrimary}}>Roadmap settings</h3>
+          <button type="button" onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:A.textSecond}}>×</button>
         </div>
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <label style={labelSt}>Sprint length (days)<input type="number" value={sprintLen} onChange={e=>setSprintLen(+e.target.value)} style={inputSt} min={1} max={60}/></label>
             <label style={labelSt}>Number of sprints<input type="number" value={sprintCount} onChange={e=>setSprintCount(+e.target.value)} style={inputSt} min={1} max={24}/></label>
           </div>
           <label style={labelSt}>Start date<input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} style={inputSt}/></label>
           <div>
-            <div style={{ fontSize:13,color:A.textPrimary,fontWeight:600,marginBottom:8 }}>Swimlanes</div>
+            <div style={{fontSize:13,color:A.textPrimary,fontWeight:600,marginBottom:8}}>Swimlanes</div>
             {lanes.map((lane,i)=>(
-              <div key={lane.id} style={{ display:"flex",gap:8,marginBottom:8,alignItems:"center" }}>
+              <div key={lane.id} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
                 <input value={lane.name} onChange={e=>{const l=[...lanes];l[i].name=e.target.value;setLanes(l);}} style={{...inputSt,flex:1}}/>
                 <button type="button" onClick={()=>setLanes(lanes.filter((_,j)=>j!==i))} style={{...btnG,padding:"7px 12px",color:A.statusCrit}}>×</button>
               </div>
             ))}
-            <div style={{ display:"flex",gap:8 }}>
+            <div style={{display:"flex",gap:8}}>
               <input value={newLane} onChange={e=>setNewLane(e.target.value)} placeholder="New lane name..." style={{...inputSt,flex:1}}/>
               <button type="button" onClick={()=>{if(newLane.trim()){setLanes([...lanes,{id:genId(),name:newLane.trim()}]);setNewLane("");}}} style={btnS}>Add</button>
             </div>
           </div>
         </div>
-        <div style={{ display:"flex",gap:10,marginTop:24,justifyContent:"flex-end" }}>
+        <div style={{display:"flex",gap:10,marginTop:24,justifyContent:"flex-end"}}>
           <button type="button" onClick={onClose} style={btnS}>Cancel</button>
           <button type="button" onClick={()=>onSave({sprintLengthDays:sprintLen,sprintCount,startDate,swimlanes:lanes})} style={btnP}>Save settings</button>
         </div>
@@ -196,46 +168,41 @@ function SettingsModal({ data, onSave, onClose }) {
   );
 }
 
-/* ── Timeline view ────────────────────────────────────────────── */
-function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOverTarget, onDragStart, onDragEnd, onDropCell, onEdit, onDelete, onAddToCell }) {
+function TimelineView({data,allProjects,draggingId,dragOverTarget,setDragOverTarget,onDragStart,onDragEnd,onDropCell,onEdit,onDelete,onAddToCell}){
   const sprints=Array.from({length:data.sprintCount},(_,i)=>i);
-  const CW=180, LW=160;
-  const colStyle = { width:CW, minWidth:CW, maxWidth:CW, flexShrink:0, flexGrow:0, boxSizing:"border-box" };
+  const CW=180,LW=160;
+  const colStyle={width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,flexGrow:0,boxSizing:"border-box"};
   return (
-    <div style={{ overflowX:"auto", padding:"0 24px 24px" }}>
-      <div style={{ minWidth:LW+data.sprintCount*CW }}>
-        {/* Header */}
-        <div style={{ display:"flex", position:"sticky", top:0, zIndex:10, background:A.canvas }}>
-          <div style={{ width:LW, minWidth:LW, maxWidth:LW, flexShrink:0, boxSizing:"border-box", borderBottom:`2px solid ${A.interactive}` }}/>
+    <div style={{overflowX:"auto",padding:"0 24px 24px"}}>
+      <div style={{minWidth:LW+data.sprintCount*CW}}>
+        <div style={{display:"flex",position:"sticky",top:0,zIndex:10,background:A.canvas}}>
+          <div style={{width:LW,minWidth:LW,maxWidth:LW,flexShrink:0,boxSizing:"border-box",borderBottom:`2px solid ${A.interactive}`}}/>
           {sprints.map(i=>(
-            <div key={i} style={{ ...colStyle, padding:"10px 8px", textAlign:"center", borderBottom:`2px solid ${A.interactive}`, borderLeft:`1px solid ${A.borderCard}`, background:A.canvas }}>
-              <div style={{ fontWeight:600, fontSize:12, color:A.interactive, fontFamily:A.font }}>Sprint {i+1}</div>
-              <div style={{ fontSize:11, color:A.textSecond, marginTop:2, fontFamily:A.font }}>{formatDate(data.startDate,data.sprintLengthDays,i)} – {formatDate(data.startDate,data.sprintLengthDays,i+1)}</div>
+            <div key={i} style={{...colStyle,padding:"10px 8px",textAlign:"center",borderBottom:`2px solid ${A.interactive}`,borderLeft:`1px solid ${A.borderCard}`,background:A.canvas}}>
+              <div style={{fontWeight:600,fontSize:12,color:A.interactive,fontFamily:A.font}}>Sprint {i+1}</div>
+              <div style={{fontSize:11,color:A.textSecond,marginTop:2,fontFamily:A.font}}>{formatDate(data.startDate,data.sprintLengthDays,i)} – {formatDate(data.startDate,data.sprintLengthDays,i+1)}</div>
             </div>
           ))}
         </div>
-        {/* Lanes */}
         {data.swimlanes.map((lane,li)=>{
           const rows=buildRows(allProjects,lane.id,data.sprintCount);
           const cap={};
-          sprints.forEach(si=>{ cap[si]=Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx===si).length; });
+          sprints.forEach(si=>{cap[si]=Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx===si).length;});
           const active=Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx!=null).length;
           return (
-            <div key={lane.id} style={{ display:"flex", borderBottom:`1px solid ${A.borderCard}`, background:li%2===0?A.canvas:"#F8FAFC" }}>
-              <div style={{ width:LW, minWidth:LW, maxWidth:LW, flexShrink:0, boxSizing:"border-box", padding:"14px 12px", borderRight:`2px solid ${A.interactive}`, display:"flex", flexDirection:"column" }}>
-                <span style={{ fontWeight:600, fontSize:13, color:A.textPrimary, fontFamily:A.font, lineHeight:1.3 }}>{lane.name}</span>
-                <span style={{ fontSize:11, color:A.textSecond, marginTop:3, fontFamily:A.font }}>{active} active</span>
+            <div key={lane.id} style={{display:"flex",borderBottom:`1px solid ${A.borderCard}`,background:li%2===0?A.canvas:"#F8FAFC"}}>
+              <div style={{width:LW,minWidth:LW,maxWidth:LW,flexShrink:0,boxSizing:"border-box",padding:"14px 12px",borderRight:`2px solid ${A.interactive}`,display:"flex",flexDirection:"column"}}>
+                <span style={{fontWeight:600,fontSize:13,color:A.textPrimary,fontFamily:A.font,lineHeight:1.3}}>{lane.name}</span>
+                <span style={{fontSize:11,color:A.textSecond,marginTop:3,fontFamily:A.font}}>{active} active</span>
               </div>
-              <div style={{ flex:1, position:"relative", minHeight:64 }}
+              <div style={{flex:1,position:"relative",minHeight:64}}
                 onDragOver={e=>{
                   e.preventDefault();
                   const rect=e.currentTarget.getBoundingClientRect();
                   const si=Math.min(Math.floor((e.clientX-rect.left)/CW),data.sprintCount-1);
                   setDragOverTarget({laneId:lane.id,sprintIdx:si});
                 }}
-                onDragLeave={e=>{
-                  if(!e.currentTarget.contains(e.relatedTarget)) setDragOverTarget(null);
-                }}
+                onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setDragOverTarget(null);}}
                 onDrop={e=>{
                   e.preventDefault();
                   const rect=e.currentTarget.getBoundingClientRect();
@@ -244,30 +211,27 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
                   setDragOverTarget(null);
                 }}
               >
-                {/* Column highlight — visual only */}
-                <div style={{ display:"flex", position:"absolute", inset:0, zIndex:0, pointerEvents:"none" }}>
+                <div style={{display:"flex",position:"absolute",inset:0,zIndex:0,pointerEvents:"none"}}>
                   {sprints.map(si=>{
                     const over=dragOverTarget?.laneId===lane.id&&dragOverTarget?.sprintIdx===si;
-                    return <div key={si} style={{ ...colStyle, height:"100%", borderLeft:`1px solid ${A.borderCard}`, background:over?"rgba(51,122,184,0.10)":"transparent", transition:"background 0.1s" }}/>;
+                    return <div key={si} style={{...colStyle,height:"100%",borderLeft:`1px solid ${A.borderCard}`,background:over?"rgba(51,122,184,0.10)":"transparent",transition:"background 0.1s"}}/>;
                   })}
                 </div>
-                {/* Bars — full pointer events */}
-                <div style={{ position:"relative", zIndex:1, paddingTop:8, paddingBottom:4 }}>
+                <div style={{position:"relative",zIndex:1,paddingTop:8,paddingBottom:4}}>
                   {rows.length===0&&<div style={{height:20}}/>}
                   {rows.map((row,ri)=>{
-                    const items=[]; let cursor=0;
+                    const items=[];let cursor=0;
                     row.forEach(proj=>{
-                      const s=proj.sprintIdx||0, span=Math.min(proj.sprintCount||1,data.sprintCount-s);
-                      if(s>cursor) items.push(<div key={`sp-${proj.id}`} style={{width:(s-cursor)*CW,flexShrink:0}}/>);
+                      const s=proj.sprintIdx||0,span=Math.min(proj.sprintCount||1,data.sprintCount-s);
+                      if(s>cursor)items.push(<div key={`sp-${proj.id}`} style={{width:(s-cursor)*CW,flexShrink:0}}/>);
                       items.push(<div key={proj.id} style={{width:span*CW,flexShrink:0,paddingLeft:4,paddingRight:4,boxSizing:"border-box"}}><GanttBar project={proj} sprintCount={data.sprintCount} onEdit={onEdit} onDelete={onDelete} dragging={draggingId===proj.id} onDragStart={onDragStart} onDragEnd={onDragEnd}/></div>);
                       cursor=s+span;
                     });
                     return <div key={ri} style={{display:"flex",alignItems:"flex-start",marginBottom:2}}>{items}</div>;
                   })}
-                  {/* Capacity row */}
-                  <div style={{ display:"flex", borderTop:`1px dashed ${A.borderCard}`, marginTop:4 }}>
+                  <div style={{display:"flex",borderTop:`1px dashed ${A.borderCard}`,marginTop:4}}>
                     {sprints.map(si=>{
-                      const count=cap[si]||0, full=count>=6;
+                      const count=cap[si]||0,full=count>=6;
                       return (
                         <div key={si} style={{width:CW,minWidth:CW,maxWidth:CW,flexShrink:0,boxSizing:"border-box",padding:"3px 4px",borderLeft:`1px solid ${A.borderCard}`}}>
                           <CapBar used={count} max={6}/>
@@ -289,11 +253,10 @@ function TimelineView({ data, allProjects, draggingId, dragOverTarget, setDragOv
   );
 }
 
-/* ── List view ────────────────────────────────────────────────── */
-function ListView({ data, allProjects, onEdit, onDelete, onMarkComplete }) {
+function ListView({data,allProjects,onEdit,onDelete,onMarkComplete}){
   const sprints=Array.from({length:data.sprintCount},(_,i)=>i);
   return (
-    <div style={{ padding:"0 24px 24px", fontFamily:A.font }}>
+    <div style={{padding:"0 24px 24px",fontFamily:A.font}}>
       {sprints.map(si=>{
         const lp=data.swimlanes.map(lane=>({lane,projects:Object.values(allProjects).filter(p=>p.laneId===lane.id&&p.sprintIdx===si)})).filter(({projects})=>projects.length>0);
         if(!lp.length) return null;
@@ -339,8 +302,7 @@ function ListView({ data, allProjects, onEdit, onDelete, onMarkComplete }) {
   );
 }
 
-/* ── Backlog panel ────────────────────────────────────────────── */
-function BacklogPanel({ data, allProjects, draggingId, backlogDragIdx, onDragStart, onDragEnd, onDrop, onBacklogDragStart, onBacklogDrop, onEdit, onDelete, onMarkComplete, onAdd }) {
+function BacklogPanel({data,allProjects,draggingId,backlogDragIdx,onDragStart,onDragEnd,onDrop,onBacklogDragStart,onBacklogDrop,onEdit,onDelete,onMarkComplete,onAdd}){
   const backlog=data.backlog||[];
   return (
     <div style={{width:232,flexShrink:0,background:A.canvas,borderLeft:`1px solid ${A.borderCard}`,display:"flex",flexDirection:"column",fontFamily:A.font}} onDragOver={e=>e.preventDefault()} onDrop={onDrop}>
@@ -380,8 +342,7 @@ function BacklogPanel({ data, allProjects, draggingId, backlogDragIdx, onDragSta
   );
 }
 
-/* ── Root App ─────────────────────────────────────────────────── */
-export default function App() {
+export default function App(){
   const [data,setData]=useState(null);
   const [view,setView]=useState("timeline");
   const [showBacklog,setShowBacklog]=useState(true);
@@ -397,23 +358,19 @@ export default function App() {
 
   useEffect(()=>{
     (async()=>{
-      try {
-        const {data:rows,error:err}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
+      try{
+        const{data:rows,error:err}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
         if(err&&err.code!=="PGRST116") throw err;
         setData(rows?.value||defaultData());
-      } catch(e) {
+      }catch(e){
         console.error(e);
         setData(defaultData());
         setError("Could not connect to Supabase — using local state.");
       }
       setLoading(false);
     })();
-
     const onFocus=async()=>{
-      try{
-        const{data:rows}=await supabase.from("roadmap_state").select("*").eq("key","main").single();
-        if(rows?.value) setData(rows.value);
-      }catch(e){}
+      try{const{data:rows}=await supabase.from("roadmap_state").select("*").eq("key","main").single();if(rows?.value)setData(rows.value);}catch(e){}
     };
     window.addEventListener("focus",onFocus);
     return()=>window.removeEventListener("focus",onFocus);
@@ -422,7 +379,7 @@ export default function App() {
   const updateData=useCallback(updater=>{
     setData(prev=>{
       const next=updater(prev);
-      (async()=>{ try{ await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"}); }catch(e){console.error(e);} })();
+      (async()=>{try{await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"});}catch(e){console.error(e);}})();
       return next;
     });
   },[]);
@@ -434,8 +391,8 @@ export default function App() {
 
   const handleSaveNew=proj=>{
     updateData(d=>{
-      if(addingTo?.type==="sprint") return {...d,projects:{...(d.projects||{}),[proj.id]:{...proj,laneId:addingTo.laneId,sprintIdx:addingTo.sprintIdx}}};
-      return {...d,projects:{...(d.projects||{}),[proj.id]:proj},backlog:[...(d.backlog||[]),proj.id]};
+      if(addingTo?.type==="sprint") return{...d,projects:{...(d.projects||{}),[proj.id]:{...proj,laneId:addingTo.laneId,sprintIdx:addingTo.sprintIdx}}};
+      return{...d,projects:{...(d.projects||{}),[proj.id]:proj},backlog:[...(d.backlog||[]),proj.id]};
     });
     setAddingTo(null);
   };
@@ -446,32 +403,32 @@ export default function App() {
   };
 
   const handleDelete=pid=>{
-    updateData(d=>{ const p={...d.projects}; delete p[pid]; return {...d,projects:p,backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)}; });
+    updateData(d=>{const p={...d.projects};delete p[pid];return{...d,projects:p,backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};});
   };
 
   const handleComplete=pid=>{
     updateData(d=>{
-      const proj=d.projects[pid]; if(!proj) return d;
-      return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},completed:[...(d.completed||[]),pid],backlog:(d.backlog||[]).filter(id=>id!==pid)};
+      const proj=d.projects[pid];if(!proj) return d;
+      return{...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},completed:[...(d.completed||[]),pid],backlog:(d.backlog||[]).filter(id=>id!==pid)};
     });
   };
 
   const handleDropCell=async(e,laneId,sprintIdx)=>{
     e.preventDefault();
-    const pid=e.dataTransfer.getData("pid"); if(!pid) return;
-    setDragOverTarget(null); setDraggingId(null);
+    const pid=e.dataTransfer.getData("pid");if(!pid) return;
+    setDragOverTarget(null);setDraggingId(null);
     const localProj=data?.projects?.[pid];
     if(localProj){
       updateData(d=>{
         const count=Object.values(d.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
         if(count>=6) return d;
-        const proj=d.projects[pid]; if(!proj) return d;
-        return {...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
+        const proj=d.projects[pid];if(!proj) return d;
+        return{...d,projects:{...d.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(d.backlog||[]).filter(id=>id!==pid),completed:(d.completed||[]).filter(id=>id!==pid)};
       });
-    } else {
+    }else{
       try{
         const fresh=await getFreshData();
-        const proj=fresh.projects?.[pid]; if(!proj) return;
+        const proj=fresh.projects?.[pid];if(!proj) return;
         const count=Object.values(fresh.projects||{}).filter(p=>p.laneId===laneId&&p.sprintIdx===sprintIdx).length;
         if(count>=6) return;
         const next={...fresh,projects:{...fresh.projects,[pid]:{...proj,laneId,sprintIdx}},backlog:(fresh.backlog||[]).filter(id=>id!==pid),completed:(fresh.completed||[]).filter(id=>id!==pid)};
@@ -483,14 +440,14 @@ export default function App() {
 
   const handleDropBacklog=async e=>{
     e.preventDefault();
-    const pid=e.dataTransfer.getData("pid"); if(!pid) return;
+    const pid=e.dataTransfer.getData("pid");if(!pid) return;
     const localProj=data?.projects?.[pid];
     if(localProj){
-      updateData(d=>{ const proj=d.projects[pid]; if(!proj) return d; const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid]; return {...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl}; });
-    } else {
+      updateData(d=>{const proj=d.projects[pid];if(!proj) return d;const bl=d.backlog?.includes(pid)?d.backlog:[...(d.backlog||[]),pid];return{...d,projects:{...d.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl};});
+    }else{
       try{
         const fresh=await getFreshData();
-        const proj=fresh.projects?.[pid]; if(!proj) return;
+        const proj=fresh.projects?.[pid];if(!proj) return;
         const bl=fresh.backlog?.includes(pid)?fresh.backlog:[...(fresh.backlog||[]),pid];
         const next={...fresh,projects:{...fresh.projects,[pid]:{...proj,laneId:undefined,sprintIdx:undefined}},backlog:bl};
         await supabase.from("roadmap_state").upsert({key:"main",value:next},{onConflict:"key"});
@@ -500,11 +457,10 @@ export default function App() {
     setDraggingId(null);
   };
 
-  const handleBacklogDragStart=(e,idx)=>{ setBacklogDragIdx(idx); e.dataTransfer.setData("backlogIdx",String(idx)); };
-  const handleBacklogDrop=(e,ti)=>{ e.preventDefault(); const fi=parseInt(e.dataTransfer.getData("backlogIdx")); if(isNaN(fi)||fi===ti) return; updateData(d=>{ const bl=[...(d.backlog||[])]; const [r]=bl.splice(fi,1); bl.splice(ti,0,r); return {...d,backlog:bl}; }); setBacklogDragIdx(null); };
-
-  const dragStart=(e,pid)=>{ e.dataTransfer.setData("pid",pid); setDraggingId(pid); };
-  const dragEnd=()=>{ setDraggingId(null); setDragOverTarget(null); };
+  const handleBacklogDragStart=(e,idx)=>{setBacklogDragIdx(idx);e.dataTransfer.setData("backlogIdx",String(idx));};
+  const handleBacklogDrop=(e,ti)=>{e.preventDefault();const fi=parseInt(e.dataTransfer.getData("backlogIdx"));if(isNaN(fi)||fi===ti) return;updateData(d=>{const bl=[...(d.backlog||[])];const[r]=bl.splice(fi,1);bl.splice(ti,0,r);return{...d,backlog:bl};});setBacklogDragIdx(null);};
+  const dragStart=(e,pid)=>{e.dataTransfer.setData("pid",pid);setDraggingId(pid);};
+  const dragEnd=()=>{setDraggingId(null);setDragOverTarget(null);};
 
   if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:A.font,color:A.textSecond}}>Loading roadmap...</div>;
   if(!data) return null;
@@ -514,56 +470,38 @@ export default function App() {
   return (
     <div style={{fontFamily:A.font,background:A.canvas,minHeight:"100vh",display:"flex",flexDirection:"column"}}>
 
-      {/* ── Top header — matches Aline scoring app style ── */}
+      {/* ── Top nav ── */}
       <div style={{background:A.sidebar,height:48,display:"flex",alignItems:"center",padding:"0 20px",gap:10,flexShrink:0,position:"sticky",top:0,zIndex:20}}>
-        {/* Logo */}
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="5" fill="#337AB8"/><path d="M6 16L11 6L16 16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 13H14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
-        <span style={{color:"#fff",fontWeight:700,fontSize:16,letterSpacing:"0.01em"}}>Aline</span>
+        <span style={{color:"#fff",fontWeight:700,fontSize:16}}>Aline</span>
         <span style={{color:"#2d4a6b",fontSize:13,margin:"0 2px"}}>/</span>
         <span style={{color:"#8BA3BC",fontSize:13}}>Product Roadmap</span>
-
         <div style={{flex:1}}/>
-
-        {/* Cross-app nav */}
         <a href="https://prioritization-five.vercel.app/" target="_blank" rel="noopener noreferrer"
-          style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#E2E8F0",fontSize:13,textDecoration:"none",fontFamily:A.font,fontWeight:500,transition:"background .15s"}}
-          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.18)"}
-          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.1)"}>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8M8 1h4m0 0v4m0-4L5.5 7.5" stroke="#E2E8F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#E2E8F0",fontSize:13,textDecoration:"none",fontWeight:500}}>
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8M8 1h4m0 0v4m0-4L5.5 7.5" stroke="#E2E8F0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           Initiative Prioritization
         </a>
-
-        {/* View toggle */}
         <div style={{display:"flex",border:"1px solid rgba(255,255,255,0.2)",borderRadius:6,overflow:"hidden"}}>
           {["timeline","list"].map(v=>(
             <button key={v} type="button" onClick={()=>setView(v)}
-              style={{padding:"5px 14px",background:view===v?"#337AB8":"transparent",color:view===v?"#fff":"#8BA3BC",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:A.font,transition:"all .15s"}}>
+              style={{padding:"5px 14px",background:view===v?"#337AB8":"transparent",color:view===v?"#fff":"#8BA3BC",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:A.font}}>
               {v.charAt(0).toUpperCase()+v.slice(1)}
             </button>
           ))}
         </div>
-
-        {/* Backlog toggle */}
         <button type="button" onClick={()=>setShowBacklog(b=>!b)}
-          style={{padding:"5px 12px",background:showBacklog?"rgba(51,122,184,0.3)":"rgba(255,255,255,0.08)",border:`1px solid ${showBacklog?"#337AB8":"rgba(255,255,255,0.15)"}`,borderRadius:6,color:showBacklog?"#7EC8F5":"#8BA3BC",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font,transition:"all .15s"}}>
+          style={{padding:"5px 12px",background:showBacklog?"rgba(51,122,184,0.3)":"rgba(255,255,255,0.08)",border:`1px solid ${showBacklog?"#337AB8":"rgba(255,255,255,0.15)"}`,borderRadius:6,color:showBacklog?"#7EC8F5":"#8BA3BC",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font}}>
           Backlog ({(data.backlog||[]).length})
         </button>
-
-        {/* Settings */}
         <button type="button" onClick={()=>setShowSettings(true)}
-          style={{padding:"5px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#8BA3BC",fontSize:13,cursor:"pointer",fontFamily:A.font,transition:"all .15s"}}>
-          ⚙
-        </button>
-
-        {/* Add initiative */}
+          style={{padding:"5px 10px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#8BA3BC",fontSize:13,cursor:"pointer",fontFamily:A.font}}>⚙</button>
         <button type="button" onClick={()=>setAddingTo({type:"backlog"})}
-          style={{padding:"5px 14px",background:"#337AB8",border:"none",borderRadius:6,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font}}>
-          + Initiative
-        </button>
+          style={{padding:"5px 14px",background:"#337AB8",border:"none",borderRadius:6,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:A.font}}>+ Initiative</button>
       </div>
 
       {/* ── Page subheader ── */}
-      <div style={{background:A.canvas,borderBottom:`1px solid ${A.borderCard}`,padding:"12px 24px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",flexShrink:0}}>
+      <div style={{background:A.canvas,borderBottom:`1px solid ${A.borderCard}`,padding:"12px 24px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
         <div style={{flex:1}}>
           <h1 style={{margin:0,fontSize:22,fontWeight:700,color:A.textPrimary,lineHeight:1.1,fontFamily:A.font}}>Product Roadmap</h1>
           <div style={{fontSize:12,color:A.textSecond,marginTop:3,fontFamily:A.font}}>{data.sprintLengthDays}-day sprints · {data.sprintCount} sprints · starts {data.startDate}</div>
@@ -571,7 +509,7 @@ export default function App() {
         {error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"5px 12px",fontSize:11}}>{error}</div>}
       </div>
 
-      {/* ── Main content (no sidebar) ── */}
+      {/* ── Main ── */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
           <div style={{flex:1}}>
@@ -580,33 +518,28 @@ export default function App() {
               :<ListView data={data} allProjects={allProjects} onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}/>
             }
           </div>
-
-            {/* Completed */}
-            <div style={{margin:"0 24px 20px",borderTop:`1px solid ${A.borderCard}`,paddingTop:14}}>
-              <button type="button" onClick={()=>setCompletedOpen(o=>!o)}
-                style={{background:"none",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,color:A.textPrimary,display:"flex",alignItems:"center",gap:8,fontFamily:A.font,padding:0}}>
-                <span style={{fontSize:10,color:A.textSecond}}>{completedOpen?"▼":"▶"}</span>
-                Completed ({(data.completed||[]).length})
-              </button>
-              {completedOpen&&(
-                <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
-                  {(data.completed||[]).map(pid=>{
-                    const p=allProjects[pid]; if(!p) return null;
-                    return (
-                      <div key={pid} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:6,padding:"6px 12px",fontSize:12,display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontWeight:600,color:"#15803D"}}>✓ {p.name}</span>
-                        <button type="button" onClick={()=>handleDelete(pid)} style={{background:"none",border:"none",color:A.statusCrit,cursor:"pointer",fontSize:12}}>×</button>
-                      </div>
-                    );
-                  })}
-                  {!(data.completed||[]).length&&<div style={{fontSize:12,color:A.textSecond}}>No completed initiatives yet.</div>}
-                </div>
-              )}
-            </div>
+          <div style={{margin:"0 24px 20px",borderTop:`1px solid ${A.borderCard}`,paddingTop:14}}>
+            <button type="button" onClick={()=>setCompletedOpen(o=>!o)}
+              style={{background:"none",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,color:A.textPrimary,display:"flex",alignItems:"center",gap:8,fontFamily:A.font,padding:0}}>
+              <span style={{fontSize:10,color:A.textSecond}}>{completedOpen?"▼":"▶"}</span>
+              Completed ({(data.completed||[]).length})
+            </button>
+            {completedOpen&&(
+              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
+                {(data.completed||[]).map(pid=>{
+                  const p=allProjects[pid];if(!p) return null;
+                  return (
+                    <div key={pid} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:6,padding:"6px 12px",fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontWeight:600,color:"#15803D"}}>✓ {p.name}</span>
+                      <button type="button" onClick={()=>handleDelete(pid)} style={{background:"none",border:"none",color:A.statusCrit,cursor:"pointer",fontSize:12}}>×</button>
+                    </div>
+                  );
+                })}
+                {!(data.completed||[]).length&&<div style={{fontSize:12,color:A.textSecond}}>No completed initiatives yet.</div>}
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Backlog panel */}
         {showBacklog&&(
           <BacklogPanel data={data} allProjects={allProjects} draggingId={draggingId} backlogDragIdx={backlogDragIdx}
             onDragStart={dragStart} onDragEnd={dragEnd} onDrop={handleDropBacklog}
