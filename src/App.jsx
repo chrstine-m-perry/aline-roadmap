@@ -622,10 +622,4 @@ export default function App() {
       {showSettings&&<SettingsModal data={data} onSave={s=>{updateData(d=>({...d,...s}));setShowSettings(false);}} onClose={()=>setShowSettings(false)}/>}
     </div>
   );
-}      {(addingTo||editProject)&&(
-        <ProjectModal project={editProject||null} onSave={editProject?handleUpdateProject:handleSaveNew} onClose={()=>{setEditProject(null);setAddingTo(null);}}/>
-      )}
-      {showSettings&&<SettingsModal data={data} onSave={s=>{updateData(d=>({...d,...s}));setShowSettings(false);}} onClose={()=>setShowSettings(false)}/>}
-    </div>
-  );
 }
