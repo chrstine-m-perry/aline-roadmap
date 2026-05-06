@@ -510,42 +510,81 @@ export default function App(){
       </div>
 
       {/* ── Main ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
-          <div style={{flex:1}}>
+      <div style={{flex:1,display:"flex",flexDirection:"row",overflow:"hidden"}}>
+        {/* Timeline / list area */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{flex:1,overflow:"auto"}}>
             {view==="timeline"
               ?<TimelineView data={data} allProjects={allProjects} draggingId={draggingId} dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDragStart={dragStart} onDragEnd={dragEnd} onDropCell={handleDropCell} onEdit={setEditProject} onDelete={handleDelete} onAddToCell={(laneId,si)=>setAddingTo({type:"sprint",laneId,sprintIdx:si})}/>
               :<ListView data={data} allProjects={allProjects} onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}/>
             }
-          </div>
-          <div style={{margin:"0 24px 20px",borderTop:`1px solid ${A.borderCard}`,paddingTop:14}}>
-            <button type="button" onClick={()=>setCompletedOpen(o=>!o)}
-              style={{background:"none",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,color:A.textPrimary,display:"flex",alignItems:"center",gap:8,fontFamily:A.font,padding:0}}>
-              <span style={{fontSize:10,color:A.textSecond}}>{completedOpen?"▼":"▶"}</span>
-              Completed ({(data.completed||[]).length})
-            </button>
-            {completedOpen&&(
-              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
-                {(data.completed||[]).map(pid=>{
-                  const p=allProjects[pid];if(!p) return null;
-                  return (
-                    <div key={pid} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:6,padding:"6px 12px",fontSize:12,display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontWeight:600,color:"#15803D"}}>✓ {p.name}</span>
-                      <button type="button" onClick={()=>handleDelete(pid)} style={{background:"none",border:"none",color:A.statusCrit,cursor:"pointer",fontSize:12}}>×</button>
-                    </div>
-                  );
-                })}
-                {!(data.completed||[]).length&&<div style={{fontSize:12,color:A.textSecond}}>No completed initiatives yet.</div>}
-              </div>
-            )}
+            <div style={{margin:"0 24px 20px",borderTop:`1px solid ${A.borderCard}`,paddingTop:14}}>
+              <button type="button" onClick={()=>setCompletedOpen(o=>!o)}
+                style={{background:"none",border:"none",cursor:"pointer",fontWeight:600,fontSize:13,color:A.textPrimary,display:"flex",alignItems:"center",gap:8,fontFamily:A.font,padding:0}}>
+                <span style={{fontSize:10,color:A.textSecond}}>{completedOpen?"▼":"▶"}</span>
+                Completed ({(data.completed||[]).length})
+              </button>
+              {completedOpen&&(
+                <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
+                  {(data.completed||[]).map(pid=>{
+                    const p=allProjects[pid];if(!p) return null;
+                    return (
+                      <div key={pid} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:6,padding:"6px 12px",fontSize:12,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontWeight:600,color:"#15803D"}}>✓ {p.name}</span>
+                        <button type="button" onClick={()=>handleDelete(pid)} style={{background:"none",border:"none",color:A.statusCrit,cursor:"pointer",fontSize:12}}>×</button>
+                      </div>
+                    );
+                  })}
+                  {!(data.completed||[]).length&&<div style={{fontSize:12,color:A.textSecond}}>No completed initiatives yet.</div>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Backlog — always-visible right sidebar with scroll */}
         {showBacklog&&(
-          <BacklogPanel data={data} allProjects={allProjects} draggingId={draggingId} backlogDragIdx={backlogDragIdx}
-            onDragStart={dragStart} onDragEnd={dragEnd} onDrop={handleDropBacklog}
-            onBacklogDragStart={handleBacklogDragStart} onBacklogDrop={handleBacklogDrop}
-            onEdit={setEditProject} onDelete={handleDelete} onMarkComplete={handleComplete}
-            onAdd={()=>setAddingTo({type:"backlog"})}/>
+          <div style={{width:248,flexShrink:0,background:A.canvas,borderLeft:`1px solid ${A.borderCard}`,display:"flex",flexDirection:"column",height:"100%"}}
+            onDragOver={e=>e.preventDefault()} onDrop={handleDropBacklog}>
+            <div style={{padding:"14px 14px 10px",borderBottom:`1px solid ${A.borderCard}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:"#F8FAFC",flexShrink:0}}>
+              <span style={{fontWeight:600,fontSize:13,color:A.textPrimary,fontFamily:A.font}}>Backlog ({(data.backlog||[]).length})</span>
+              <button type="button" onClick={()=>setAddingTo({type:"backlog"})} style={{...btnP,padding:"5px 12px",fontSize:12}}>+ Add</button>
+            </div>
+            <div style={{padding:10,flex:1,overflowY:"auto",minHeight:0}}>
+              {(data.backlog||[]).length===0&&(
+                <div style={{textAlign:"center",padding:"24px 10px",color:A.textSecond,fontSize:12,fontFamily:A.font}}>Drop initiatives here or click + Add</div>
+              )}
+              {(data.backlog||[]).map((pid,idx)=>{
+                const p=(data.projects||{})[pid];if(!p) return null;
+                const c=DRIVER_COLORS[p.driver]||DRIVER_COLORS["New Feature"];
+                return (
+                  <div key={pid} draggable
+                    onDragStart={e=>{handleBacklogDragStart(e,idx);dragStart(e,pid);}}
+                    onDragEnd={dragEnd}
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={e=>handleBacklogDrop(e,idx)}
+                    style={{opacity:draggingId===pid?0.4:1,borderTop:backlogDragIdx!==null&&backlogDragIdx!==idx?`2px dashed ${A.interactive}`:undefined}}>
+                    <div style={{background:"#F8FAFC",border:`1px solid ${A.borderCard}`,borderRadius:6,padding:"8px 10px",marginBottom:6,cursor:"grab",boxShadow:A.shadowCard,fontFamily:A.font}}>
+                      <div style={{fontWeight:600,fontSize:12,color:A.textPrimary,lineHeight:1.3,marginBottom:4}}>
+                        <span style={{color:A.textSecond,marginRight:4,fontSize:11}}>#{idx+1}</span>{p.name}
+                      </div>
+                      {p.sourceId&&<div style={{fontSize:10,background:"#EBF4FB",color:"#1A5C8A",border:"1px solid #A8D0EF",borderRadius:4,padding:"1px 6px",marginBottom:4,display:"inline-block",fontWeight:600}}>↗ From scoring board</div>}
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+                        <span style={{background:RICE_COLOR(p.rice||0).bg,color:RICE_COLOR(p.rice||0).text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700}}>{p.rice>0?p.rice:"Unscored"}</span>
+                        <span style={{background:c.bg,color:c.text,borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:600,border:`1px solid ${c.border}`}}>{p.driver==="Customer Maintain"?"CM":"NF"}</span>
+                        <span style={{background:"#F1F5F9",color:A.textSecond,borderRadius:4,padding:"1px 6px",fontSize:10}}>{p.sprintCount||1}sp</span>
+                      </div>
+                      <div style={{display:"flex",gap:5}}>
+                        <button type="button" onClick={()=>setEditProject(p)} style={{flex:1,...btnS,padding:"3px 0",fontSize:10,textAlign:"center"}}>Edit</button>
+                        <button type="button" onClick={()=>handleComplete(pid)} style={{flex:1,background:"#F0FDF4",border:"1px solid #BBF7D0",color:"#15803D",borderRadius:6,padding:"3px 0",fontSize:10,cursor:"pointer"}}>Done</button>
+                        <button type="button" onClick={()=>handleDelete(pid)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:A.statusCrit,borderRadius:6,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>×</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
